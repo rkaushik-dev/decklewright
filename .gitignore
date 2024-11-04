@@ -1,0 +1,9 @@
+node_modules/
+coverage/
+.vitest/
+work/
+out/
+*.log
+*.local
+.DS_Store
+Thumbs.db
