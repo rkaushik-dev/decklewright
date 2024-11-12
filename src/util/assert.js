@@ -34,11 +34,11 @@ export function assertFinite(value, name) {
  * @returns {number}
  */
 export function assertInteger(value, name) {
-  assertFinite(value, name);
-  if (!Number.isInteger(value)) {
+  const n = assertFinite(value, name);
+  if (!Number.isInteger(n)) {
     throw new BadArgumentError(`${name} must be a whole number`, { name, value });
   }
-  return /** @type {number} */ (value);
+  return n;
 }
 
 /**
@@ -47,11 +47,11 @@ export function assertInteger(value, name) {
  * @returns {number}
  */
 export function assertPositive(value, name) {
-  assertFinite(value, name);
-  if (!(/** @type {number} */ (value) > 0)) {
+  const n = assertFinite(value, name);
+  if (!(n > 0)) {
     throw new BadArgumentError(`${name} must be greater than zero`, { name, value });
   }
-  return /** @type {number} */ (value);
+  return n;
 }
 
 /**
@@ -60,11 +60,11 @@ export function assertPositive(value, name) {
  * @returns {number}
  */
 export function assertNonNegative(value, name) {
-  assertFinite(value, name);
-  if (/** @type {number} */ (value) < 0) {
+  const n = assertFinite(value, name);
+  if (n < 0) {
     throw new BadArgumentError(`${name} must not be negative`, { name, value });
   }
-  return /** @type {number} */ (value);
+  return n;
 }
 
 /**
@@ -73,11 +73,11 @@ export function assertNonNegative(value, name) {
  * @returns {number}
  */
 export function assertPositiveInteger(value, name) {
-  assertInteger(value, name);
-  if (/** @type {number} */ (value) <= 0) {
+  const n = assertInteger(value, name);
+  if (n <= 0) {
     throw new BadArgumentError(`${name} must be a whole number above zero`, { name, value });
   }
-  return /** @type {number} */ (value);
+  return n;
 }
 
 /**
@@ -90,8 +90,7 @@ export function assertPositiveInteger(value, name) {
  * @returns {number}
  */
 export function assertInRange(value, low, high, name) {
-  assertFinite(value, name);
-  const n = /** @type {number} */ (value);
+  const n = assertFinite(value, name);
   if (n < low || n > high) {
     throw new BadArgumentError(`${name} must be between ${low} and ${high}`, {
       name,
