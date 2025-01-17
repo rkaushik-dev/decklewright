@@ -24,7 +24,8 @@ export const SAMPLE_MODES = Object.freeze(['nearest', 'bilinear']);
  * @returns {number} the column to read, or minus one when there is none
  */
 export function resolveIndex(value, extent, mode) {
-  if (value >= 0 && value < extent) return value;
+  // adding zero folds a negative zero from Math.ceil back onto the real one
+  if (value >= 0 && value < extent) return value + 0;
   switch (mode) {
     case 'mirror': {
       if (extent === 1) return 0;
