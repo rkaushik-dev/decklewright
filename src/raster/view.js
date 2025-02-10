@@ -1,7 +1,6 @@
 import { BadArgumentError } from '../errors.js';
-import { Rect } from '../geom/rect.js';
-import { Size } from '../geom/size.js';
 import { isWholePixel } from '../geom/round.js';
+import { Raster } from './raster.js';
 import { Surface } from './surface.js';
 
 /**
@@ -12,15 +11,16 @@ import { Surface } from './surface.js';
  * writes through, which is also how the render stage fills one tile of an
  * output without allocating the tile first.
  */
-export class SurfaceView {
+export class SurfaceView extends Raster {
   /**
    * @param {Surface} surface
-   * @param {Rect} rect in the coordinates of the surface
+   * @param {import('../geom/rect.js').Rect} rect in the coordinates of the surface
    */
   constructor(surface, rect) {
     if (!(surface instanceof Surface)) {
       throw new BadArgumentError('a view needs a surface to look at', {});
     }
+    super(surface.layout, surface.depth);
     if (!isWholePixel(rect)) {
       throw new BadArgumentError('a view rect must be whole pixels', { rect: rect.toJSON() });
     }
@@ -35,6 +35,8 @@ export class SurfaceView {
     }
     this.surface = surface;
     this.rect = rect;
+    this.width = rect.width;
+    this.height = rect.height;
     Object.freeze(this);
   }
 
@@ -46,53 +48,9 @@ export class SurfaceView {
     return new SurfaceView(surface, surface.bounds);
   }
 
-  /** @returns {number} */
-  get width() {
-    return this.rect.width;
-  }
-
-  /** @returns {number} */
-  get height() {
-    return this.rect.height;
-  }
-
-  /** @returns {import('./layout.js').LayoutName} */
-  get layout() {
-    return this.surface.layout;
-  }
-
-  /** @returns {import('./layout.js').Depth} */
-  get depth() {
-    return this.surface.depth;
-  }
-
-  /** @returns {number} */
-  get channels() {
-    return this.surface.channels;
-  }
-
-  /** @returns {number} */
-  get maxValue() {
-    return this.surface.maxValue;
-  }
-
-  /** @returns {Size} */
-  get size() {
-    return new Size(this.width, this.height);
-  }
-
-  /** @returns {Rect} view local bounds, always at the origin */
-  get bounds() {
-    return Rect.of(0, 0, this.width, this.height);
-  }
-
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @returns {boolean}
-   */
-  contains(x, y) {
-    return x >= 0 && y >= 0 && x < this.width && y < this.height;
+  /** @returns {string} */
+  get regionName() {
+    return 'view';
   }
 
   /**
@@ -119,27 +77,6 @@ export class SurfaceView {
   }
 
   /**
-   * @param {number} x
-   * @param {number} y
-   * @returns {number[]}
-   */
-  getPixel(x, y) {
-    this.assertInside(x, y);
-    return this.surface.getPixel(x + this.rect.x, y + this.rect.y);
-  }
-
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @param {readonly number[]} values
-   * @returns {void}
-   */
-  setPixel(x, y, values) {
-    this.assertInside(x, y);
-    this.surface.setPixel(x + this.rect.x, y + this.rect.y, values);
-  }
-
-  /**
    * The part of one parent row this view covers, still live.
    *
    * @param {number} y
@@ -149,11 +86,11 @@ export class SurfaceView {
     this.assertInside(0, y);
     const stride = this.surface.rowStride;
     const start = (y + this.rect.y) * stride + this.rect.x * this.channels;
-    return this.surface.data.subarray(start, start + this.width * this.channels);
+    return this.surface.data.subarray(start, start + this.rowStride);
   }
 
   /**
-   * @param {Rect} rect in view local coordinates
+   * @param {import('../geom/rect.js').Rect} rect in view local coordinates
    * @returns {SurfaceView}
    */
   subview(rect) {
@@ -181,22 +118,6 @@ export class SurfaceView {
     });
     for (let y = 0; y < this.height; y += 1) out.row(y).set(this.row(y));
     return out;
-  }
-
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @returns {void}
-   */
-  assertInside(x, y) {
-    if (!this.contains(x, y)) {
-      throw new BadArgumentError('that pixel is outside the view', {
-        x,
-        y,
-        width: this.width,
-        height: this.height,
-      });
-    }
   }
 
   /** @returns {string} */

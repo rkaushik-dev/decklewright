@@ -1,14 +1,7 @@
 import { BadArgumentError } from '../errors.js';
-import { Rect } from '../geom/rect.js';
-import { Size } from '../geom/size.js';
 import { assertInteger, assertPositiveInteger } from '../util/assert.js';
-import {
-  arrayTypeFor,
-  assertDepth,
-  assertLayout,
-  channelCount,
-  maxValue as maxForDepth,
-} from './layout.js';
+import { arrayTypeFor, assertDepth, assertLayout, channelCount } from './layout.js';
+import { Raster } from './raster.js';
 
 /**
  * A pixel buffer.
@@ -18,7 +11,7 @@ import {
  * because a twenty four by thirty six inch sheet at six hundred ppi is only
  * about three hundred megapixels and the machines have the memory.
  */
-export class Surface {
+export class Surface extends Raster {
   /**
    * @param {object} args
    * @param {number} args.width
@@ -28,11 +21,9 @@ export class Surface {
    * @param {Uint8Array|Uint16Array} args.data
    */
   constructor({ width, height, layout, depth, data }) {
+    super(layout, depth);
     this.width = assertPositiveInteger(width, 'width');
     this.height = assertPositiveInteger(height, 'height');
-    this.layout = assertLayout(layout);
-    this.depth = assertDepth(depth);
-    this.channels = channelCount(this.layout);
 
     const expected = this.width * this.height * this.channels;
     if (data.length !== expected) {
@@ -82,38 +73,14 @@ export class Surface {
     return new Surface({ width, height, layout, depth, data });
   }
 
-  /** @returns {Size} */
-  get size() {
-    return new Size(this.width, this.height);
-  }
-
-  /** @returns {Rect} */
-  get bounds() {
-    return Rect.of(0, 0, this.width, this.height);
-  }
-
-  /** @returns {number} */
-  get maxValue() {
-    return maxForDepth(this.depth);
+  /** @returns {string} */
+  get regionName() {
+    return 'surface';
   }
 
   /** @returns {number} */
   get sampleCount() {
     return this.data.length;
-  }
-
-  /** @returns {number} how many samples make up one row */
-  get rowStride() {
-    return this.width * this.channels;
-  }
-
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @returns {boolean}
-   */
-  contains(x, y) {
-    return x >= 0 && y >= 0 && x < this.width && y < this.height;
   }
 
   /**
@@ -123,20 +90,8 @@ export class Surface {
    * @returns {number}
    */
   indexOf(x, y, channel = 0) {
-    if (!this.contains(x, y)) {
-      throw new BadArgumentError('that pixel is outside the surface', {
-        x,
-        y,
-        width: this.width,
-        height: this.height,
-      });
-    }
-    if (channel < 0 || channel >= this.channels) {
-      throw new BadArgumentError('that channel is outside the layout', {
-        channel,
-        channels: this.channels,
-      });
-    }
+    this.assertInside(x, y);
+    this.assertChannel(channel);
     return (y * this.width + x) * this.channels + channel;
   }
 
@@ -162,35 +117,6 @@ export class Surface {
   }
 
   /**
-   * @param {number} x
-   * @param {number} y
-   * @returns {number[]}
-   */
-  getPixel(x, y) {
-    const base = this.indexOf(x, y, 0);
-    const out = new Array(this.channels);
-    for (let c = 0; c < this.channels; c += 1) out[c] = this.data[base + c];
-    return out;
-  }
-
-  /**
-   * @param {number} x
-   * @param {number} y
-   * @param {readonly number[]} values
-   * @returns {void}
-   */
-  setPixel(x, y, values) {
-    if (values.length !== this.channels) {
-      throw new BadArgumentError('that pixel has the wrong number of channels', {
-        given: values.length,
-        expected: this.channels,
-      });
-    }
-    const base = this.indexOf(x, y, 0);
-    for (let c = 0; c < this.channels; c += 1) this.data[base + c] = values[c];
-  }
-
-  /**
    * A live view of one row, so a codec can write straight into it.
    *
    * @param {number} y
@@ -198,9 +124,7 @@ export class Surface {
    */
   row(y) {
     assertInteger(y, 'y');
-    if (y < 0 || y >= this.height) {
-      throw new BadArgumentError('that row is outside the surface', { y, height: this.height });
-    }
+    this.assertInside(0, y);
     const start = y * this.rowStride;
     return this.data.subarray(start, start + this.rowStride);
   }
@@ -215,12 +139,7 @@ export class Surface {
       this.data.fill(value);
       return;
     }
-    if (channel < 0 || channel >= this.channels) {
-      throw new BadArgumentError('that channel is outside the layout', {
-        channel,
-        channels: this.channels,
-      });
-    }
+    this.assertChannel(channel);
     for (let i = channel; i < this.data.length; i += this.channels) this.data[i] = value;
   }
 
@@ -255,15 +174,5 @@ export class Surface {
       depth: overrides.depth ?? this.depth,
       fill: overrides.fill ?? 0,
     });
-  }
-
-  /** @returns {{width: number, height: number, layout: string, depth: number}} */
-  toJSON() {
-    return { width: this.width, height: this.height, layout: this.layout, depth: this.depth };
-  }
-
-  /** @returns {string} */
-  toString() {
-    return `${this.width}x${this.height} ${this.layout}${this.depth}`;
   }
 }
