@@ -163,3 +163,68 @@ export function looksLikePnm(bytes) {
   if (bytes.length < 2) return false;
   return bytes[0] === 0x50 && MAGICS.has(`P${String.fromCharCode(bytes[1])}`);
 }
+
+/**
+ * @param {string} text
+ * @returns {Uint8Array}
+ */
+function asciiBytes(text) {
+  const out = new Uint8Array(text.length);
+  for (let i = 0; i < text.length; i += 1) out[i] = text.charCodeAt(i) & 0xff;
+  return out;
+}
+
+/**
+ * Write a surface back out.
+ *
+ * Only gray and rgb go out, because netpbm has no coverage channel and
+ * silently dropping one would be the kind of quiet loss this whole tree exists
+ * to avoid. A capture with alpha has to be composited first, on purpose, by a
+ * caller who knows what the background should be.
+ *
+ * @param {Surface} surface
+ * @param {object} [options]
+ * @param {boolean} [options.ascii] the plain text variants, for a diffable fixture
+ * @param {string} [options.comment] one line, written into the header
+ * @returns {Uint8Array}
+ */
+export function writePnm(surface, { ascii = false, comment } = {}) {
+  if (surface.layout !== 'gray' && surface.layout !== 'rgb') {
+    throw new CodecError('netpbm holds gray or rgb and nothing else', { layout: surface.layout });
+  }
+  if (comment !== undefined && comment.includes('\n')) {
+    throw new CodecError('a netpbm comment cannot span lines', { comment });
+  }
+  const colour = surface.layout === 'rgb';
+  const magic = ascii ? (colour ? 'P3' : 'P2') : colour ? 'P6' : 'P5';
+  const max = surface.maxValue;
+  const commentLine = comment === undefined ? '' : `# ${comment}\n`;
+  const header = `${magic}\n${commentLine}${surface.width} ${surface.height}\n${max}\n`;
+
+  if (ascii) {
+    const parts = [header];
+    for (let y = 0; y < surface.height; y += 1) {
+      const row = surface.row(y);
+      const line = new Array(row.length);
+      for (let i = 0; i < row.length; i += 1) line[i] = String(row[i]);
+      parts.push(`${line.join(' ')}\n`);
+    }
+    return asciiBytes(parts.join(''));
+  }
+
+  const head = asciiBytes(header);
+  const wide = surface.depth === 16;
+  const body = new Uint8Array(surface.data.length * (wide ? 2 : 1));
+  if (wide) {
+    for (let i = 0; i < surface.data.length; i += 1) {
+      body[i * 2] = (surface.data[i] >> 8) & 0xff;
+      body[i * 2 + 1] = surface.data[i] & 0xff;
+    }
+  } else {
+    body.set(surface.data);
+  }
+  const out = new Uint8Array(head.length + body.length);
+  out.set(head, 0);
+  out.set(body, head.length);
+  return out;
+}
