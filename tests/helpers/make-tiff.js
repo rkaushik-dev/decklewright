@@ -1,3 +1,4 @@
+import { lzwEncode } from '../../src/codec/tiff/lzw.js';
 import { packBits } from '../../src/codec/tiff/packbits.js';
 
 /**
@@ -68,7 +69,9 @@ export function makeTiff({
         }
       }
     }
-    strips.push(compression === 32773 ? packBits(raw) : raw);
+    if (compression === 32773) strips.push(packBits(raw));
+    else if (compression === 5) strips.push(lzwEncode(raw));
+    else strips.push(raw);
   }
 
   /** @type {{tag: number, type: number, values: number[]}[]} */

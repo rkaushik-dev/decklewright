@@ -1,5 +1,6 @@
 import { CodecError, UnsupportedError } from '../../errors.js';
 import { Surface } from '../../raster/surface.js';
+import { lzwDecode } from './lzw.js';
 import { unpackBits } from './packbits.js';
 import {
   COMPRESSION,
@@ -68,6 +69,8 @@ function decompress(bytes, compression, expected) {
       return bytes.subarray(0, expected);
     case COMPRESSION.PACKBITS:
       return unpackBits(bytes, expected);
+    case COMPRESSION.LZW:
+      return lzwDecode(bytes, expected);
     default:
       throw new UnsupportedError(`compression ${compression} is not read here`, { compression });
   }
