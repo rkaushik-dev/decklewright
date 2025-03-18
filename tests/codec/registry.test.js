@@ -27,8 +27,8 @@ function sample() {
 }
 
 describe('the codec list', () => {
-  it('names the two formats the lab handles', () => {
-    expect([...CODEC_NAMES]).toEqual(['png', 'pnm']);
+  it('names the three formats the lab handles', () => {
+    expect([...CODEC_NAMES]).toEqual(['png', 'tiff', 'pnm']);
   });
 
   it('finds a codec by name, case insensitively', () => {
@@ -42,7 +42,7 @@ describe('the codec list', () => {
       throw new Error('should have thrown');
     } catch (err) {
       expect(err.message).toBe('no codec called jpeg');
-      expect(err.details.known).toEqual(['png', 'pnm']);
+      expect(err.details.known).toEqual(['png', 'tiff', 'pnm']);
     }
   });
 });
@@ -54,8 +54,13 @@ describe('codecForPath', () => {
     expect(codecForPath('/vault/q17.ppm')?.name).toBe('pnm');
   });
 
+  it('matches the two tiff extensions', () => {
+    expect(codecForPath('/vault/q17.tif')?.name).toBe('tiff');
+    expect(codecForPath('/vault/q17.tiff')?.name).toBe('tiff');
+  });
+
   it('gives nothing for an unknown or missing extension', () => {
-    expect(codecForPath('/vault/q17.tif')).toBeNull();
+    expect(codecForPath('/vault/q17.jpg')).toBeNull();
     expect(codecForPath('/vault/q17')).toBeNull();
   });
 });
@@ -130,11 +135,15 @@ describe('writeImage', () => {
     expect(String.fromCharCode(ascii[0], ascii[1])).toBe('P3');
   });
 
-  it('round trips through both formats', () => {
-    for (const format of CODEC_NAMES) {
+  it('round trips through the formats that can be written', () => {
+    for (const format of ['png', 'pnm']) {
       const back = readImage(writeImage(sample(), format));
       expect([...back.data]).toEqual([...sample().data]);
     }
+  });
+
+  it('refuses to write a format that is read only', () => {
+    expect(() => writeImage(sample(), 'tiff')).toThrow(/tiff is read only here/);
   });
 
   it('refuses a format it does not know', () => {

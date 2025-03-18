@@ -4,6 +4,8 @@ import { looksLikePnm, probePnm, readPnm, writePnm } from './pnm.js';
 import { looksLikePng } from './png/chunks.js';
 import { decodePng, probePng } from './png/decode.js';
 import { encodePng } from './png/encode.js';
+import { probeTiff, readTiff } from './tiff/reader.js';
+import { looksLikeTiff } from './tiff/tags.js';
 
 /** @typedef {import('../raster/surface.js').Surface} Surface */
 /** @typedef {{width: number, height: number, layout: string, depth: number}} Shape */
@@ -36,6 +38,14 @@ const CODECS = [
     read: (bytes) => decodePng(bytes).surface,
     probe: probePng,
     write: (surface, options) => encodePng(surface, options),
+  },
+  {
+    name: 'tiff',
+    extensions: ['.tif', '.tiff'],
+    sniff: looksLikeTiff,
+    read: (bytes) => readTiff(bytes).surface,
+    probe: probeTiff,
+    write: null,
   },
   {
     name: 'pnm',
