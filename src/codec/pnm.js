@@ -1,4 +1,5 @@
 import { CodecError } from '../errors.js';
+import { asciiBytes, concatBytes } from './bytes.js';
 import { Surface } from '../raster/surface.js';
 
 /**
@@ -165,16 +166,6 @@ export function looksLikePnm(bytes) {
 }
 
 /**
- * @param {string} text
- * @returns {Uint8Array}
- */
-function asciiBytes(text) {
-  const out = new Uint8Array(text.length);
-  for (let i = 0; i < text.length; i += 1) out[i] = text.charCodeAt(i) & 0xff;
-  return out;
-}
-
-/**
  * Write a surface back out.
  *
  * Only gray and rgb go out, because netpbm has no coverage channel and
@@ -223,8 +214,5 @@ export function writePnm(surface, { ascii = false, comment } = {}) {
   } else {
     body.set(surface.data);
   }
-  const out = new Uint8Array(head.length + body.length);
-  out.set(head, 0);
-  out.set(body, head.length);
-  return out;
+  return concatBytes([head, body]);
 }

@@ -2,6 +2,7 @@ import { deflateSync } from 'node:zlib';
 
 import { CodecError } from '../../errors.js';
 import { assertInRange } from '../../util/assert.js';
+import { latin1Bytes, uint32BE } from '../bytes.js';
 import { assemble } from './chunks.js';
 import { FILTER_NONE, applyFilter, chooseFilter } from './filters.js';
 
@@ -21,32 +22,6 @@ import { FILTER_NONE, applyFilter, chooseFilter } from './filters.js';
 const COLOUR_TYPE = { gray: 0, rgb: 2, graya: 4, rgba: 6 };
 
 const METRES_PER_INCH = 0.0254;
-
-/**
- * @param {number} value
- * @returns {Uint8Array}
- */
-function uint32(value) {
-  const out = new Uint8Array(4);
-  new DataView(out.buffer).setUint32(0, value >>> 0);
-  return out;
-}
-
-/**
- * @param {string} text
- * @returns {Uint8Array}
- */
-function latin1(text) {
-  const out = new Uint8Array(text.length);
-  for (let i = 0; i < text.length; i += 1) {
-    const code = text.charCodeAt(i);
-    if (code > 255) {
-      throw new CodecError('a png text chunk holds latin one and nothing wider', { text });
-    }
-    out[i] = code;
-  }
-  return out;
-}
 
 /**
  * @param {Surface} surface
@@ -74,8 +49,8 @@ export function textChunk(key, value) {
   if (key.length === 0 || key.length > 79) {
     throw new CodecError('a png text key is one to seventy nine characters', { key });
   }
-  const keyBytes = latin1(key);
-  const valueBytes = latin1(value);
+  const keyBytes = latin1Bytes(key, 'a png text key');
+  const valueBytes = latin1Bytes(value, 'png text');
   const data = new Uint8Array(keyBytes.length + 1 + valueBytes.length);
   data.set(keyBytes, 0);
   data[keyBytes.length] = 0;
@@ -90,8 +65,8 @@ export function textChunk(key, value) {
  */
 export function physicalChunk(ppiX, ppiY) {
   const data = new Uint8Array(9);
-  data.set(uint32(Math.round(ppiX / METRES_PER_INCH)), 0);
-  data.set(uint32(Math.round(ppiY / METRES_PER_INCH)), 4);
+  data.set(uint32BE(Math.round(ppiX / METRES_PER_INCH)), 0);
+  data.set(uint32BE(Math.round(ppiY / METRES_PER_INCH)), 4);
   data[8] = 1;
   return { type: 'pHYs', data };
 }

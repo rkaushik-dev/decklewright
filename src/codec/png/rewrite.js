@@ -1,4 +1,5 @@
 import { CodecError } from '../../errors.js';
+import { concatBytes, readAsciiZ } from '../bytes.js';
 import { assemble, chunkFlags, findChunk, splitChunks } from './chunks.js';
 import { textChunk } from './encode.js';
 
@@ -105,7 +106,7 @@ export function withMetadata(bytes, { text, time } = {}) {
     if (chunk.type === 'tIME' && time) continue;
     if (chunk.type === 'tEXt' && keys.size > 0) {
       const split = chunk.data.indexOf(0);
-      const key = String.fromCharCode(...chunk.data.subarray(0, Math.max(0, split)));
+      const key = readAsciiZ(chunk.data, 0, Math.max(0, split));
       if (keys.has(key)) continue;
     }
     (seenData ? tail : head).push({ type: chunk.type, data: chunk.data });
@@ -151,13 +152,5 @@ export function chunkTypes(bytes) {
 export function imageDataOf(bytes) {
   const parts = splitChunks(bytes, { checkCrc: false }).filter((chunk) => chunk.type === 'IDAT');
   if (parts.length === 0) throw new CodecError('no IDAT chunk', {});
-  let total = 0;
-  for (const part of parts) total += part.data.length;
-  const out = new Uint8Array(total);
-  let at = 0;
-  for (const part of parts) {
-    out.set(part.data, at);
-    at += part.data.length;
-  }
-  return out;
+  return concatBytes(parts.map((part) => part.data));
 }

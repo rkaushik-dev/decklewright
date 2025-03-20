@@ -9,7 +9,7 @@ target and a scale bar. This library turns that capture into a preservation
 master, a service copy and a thumbnail that match whatever the collection
 profile says, and writes a manifest saying what happened.
 
-Node 20.11 or newer. No runtime dependencies.
+Node 20.15 or newer. No runtime dependencies.
 
 ## Layout
 

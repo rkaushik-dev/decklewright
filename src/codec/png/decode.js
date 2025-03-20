@@ -1,6 +1,7 @@
 import { inflateSync } from 'node:zlib';
 
 import { CodecError, UnsupportedError } from '../../errors.js';
+import { concatBytes, readAsciiZ } from '../bytes.js';
 import { Surface } from '../../raster/surface.js';
 import { chunksOfType, findChunk, splitChunks } from './chunks.js';
 import { undoFilter } from './filters.js';
@@ -74,22 +75,6 @@ function assertSupported(header) {
 }
 
 /**
- * @param {readonly {data: Uint8Array}[]} parts
- * @returns {Uint8Array}
- */
-function concat(parts) {
-  let total = 0;
-  for (const part of parts) total += part.data.length;
-  const out = new Uint8Array(total);
-  let at = 0;
-  for (const part of parts) {
-    out.set(part.data, at);
-    at += part.data.length;
-  }
-  return out;
-}
-
-/**
  * @param {Uint8Array} bytes
  * @returns {{surface: Surface, text: Record<string, string>, physical: {x: number, y: number, unit: number}|null}}
  */
@@ -105,7 +90,7 @@ export function decodePng(bytes) {
 
   let raw;
   try {
-    raw = new Uint8Array(inflateSync(Buffer.from(concat(idat))));
+    raw = new Uint8Array(inflateSync(Buffer.from(concatBytes(idat.map((chunk) => chunk.data)))));
   } catch (cause) {
     throw new CodecError('the compressed data will not inflate', { cause });
   }
@@ -163,8 +148,8 @@ export function readText(chunks) {
   for (const chunk of chunksOfType(chunks, 'tEXt')) {
     const split = chunk.data.indexOf(0);
     if (split <= 0) continue;
-    const key = String.fromCharCode(...chunk.data.subarray(0, split));
-    out[key] = String.fromCharCode(...chunk.data.subarray(split + 1));
+    const key = readAsciiZ(chunk.data, 0, split);
+    out[key] = readAsciiZ(chunk.data, split + 1, chunk.data.length - split - 1);
   }
   return out;
 }
