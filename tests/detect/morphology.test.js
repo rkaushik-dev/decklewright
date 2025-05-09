@@ -122,6 +122,18 @@ describe('close', () => {
     const mask = maskOf(['.....', '.###.', '.###.', '.###.', '.....']);
     expect(close(mask, 1).get(2, 2)).toBe(1);
   });
+
+  it('does not shave the border off a block that reaches it', () => {
+    const mask = maskOf(['####', '####', '####', '####']);
+    expect(close(mask, 1).count).toBe(16);
+    expect(close(mask, 2).count).toBe(16);
+  });
+
+  it('still lets erode eat the border when it is asked plainly', () => {
+    const mask = maskOf(['####', '####', '####', '####']);
+    expect(erode(mask, 1).count).toBe(4);
+    expect(erode(mask, 1, { outsideIsSet: true }).count).toBe(16);
+  });
 });
 
 describe('boundary', () => {

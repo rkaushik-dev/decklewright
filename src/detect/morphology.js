@@ -10,9 +10,11 @@ import { Mask } from './mask.js';
  * the difference between a linear pass and a quadratic one is very measurable
  * on a three hundred megapixel capture.
  *
- * Outside the mask counts as background, so an erode eats into the border.
- * That is what we want: an object touching the edge of the bed is an object
- * that was placed wrong.
+ * Outside the mask counts as background by default, so an erode eats into the
+ * border. A closing has to say otherwise. It is meant to mend a gap and put
+ * everything else back, and with the default it quietly shaves three pixels
+ * off every edge instead, which loses exactly the evidence that a sheet ran
+ * off the bed.
  */
 
 /**
@@ -39,9 +41,10 @@ function prefixSum(mask) {
  * @param {Mask} mask
  * @param {number} radius
  * @param {(count: number, area: number) => boolean} decide
+ * @param {boolean} [outsideIsSet]
  * @returns {Mask}
  */
-function windowPass(mask, radius, decide) {
+function windowPass(mask, radius, decide, outsideIsSet = false) {
   assertNonNegative(radius, 'radius');
   const r = Math.round(radius);
   if (r === 0) return mask.clone();
@@ -58,11 +61,12 @@ function windowPass(mask, radius, decide) {
     for (let x = 0; x < mask.width; x += 1) {
       const left = Math.max(0, x - r);
       const right = Math.min(mask.width, x + r + 1);
-      const count =
+      let count =
         sums[bottom * stride + right] -
         sums[bottom * stride + left] -
         sums[top * stride + right] +
         sums[top * stride + left];
+      if (outsideIsSet) count += fullArea - (right - left) * (bottom - top);
       out.data[y * mask.width + x] = decide(count, fullArea) ? 1 : 0;
     }
   }
@@ -72,10 +76,12 @@ function windowPass(mask, radius, decide) {
 /**
  * @param {Mask} mask
  * @param {number} radius
+ * @param {object} [options]
+ * @param {boolean} [options.outsideIsSet] treat beyond the border as object
  * @returns {Mask}
  */
-export function erode(mask, radius) {
-  return windowPass(mask, radius, (count, area) => count === area);
+export function erode(mask, radius, { outsideIsSet = false } = {}) {
+  return windowPass(mask, radius, (count, area) => count === area, outsideIsSet);
 }
 
 /**
@@ -107,7 +113,7 @@ export function open(mask, radius) {
  * @returns {Mask}
  */
 export function close(mask, radius) {
-  return erode(dilate(mask, radius), radius);
+  return erode(dilate(mask, radius), radius, { outsideIsSet: true });
 }
 
 /**
