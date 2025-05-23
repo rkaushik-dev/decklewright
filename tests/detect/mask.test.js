@@ -84,28 +84,6 @@ describe('threshold', () => {
   });
 });
 
-describe('otsu', () => {
-  it('picks its own threshold and reports it', () => {
-    const s = Surface.create({ width: 20, height: 20, layout: 'gray', fill: 30 });
-    for (let y = 5; y < 15; y += 1) {
-      for (let x = 5; x < 15; x += 1) s.set(x, y, 0, 210);
-    }
-    const { mask, threshold } = Mask.otsu(s);
-    expect(threshold).toBeGreaterThan(30);
-    expect(threshold).toBeLessThan(210);
-    expect(mask.count).toBe(100);
-    expect(mask.extent().toJSON()).toEqual({ x: 5, y: 5, width: 10, height: 10 });
-  });
-
-  it('can be told to keep the dark side', () => {
-    const s = Surface.create({ width: 20, height: 20, layout: 'gray', fill: 30 });
-    for (let y = 5; y < 15; y += 1) {
-      for (let x = 5; x < 15; x += 1) s.set(x, y, 0, 210);
-    }
-    expect(Mask.otsu(s, { above: false }).mask.count).toBe(300);
-  });
-});
-
 describe('reading and writing', () => {
   it('reads zero outside the mask rather than throwing', () => {
     const mask = new Mask(2, 2);

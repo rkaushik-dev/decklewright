@@ -2,13 +2,19 @@ import { BadArgumentError } from '../errors.js';
 import { Rect } from '../geom/rect.js';
 import { Size } from '../geom/size.js';
 import { assertPositiveInteger } from '../util/assert.js';
-import { histogramOf } from '../raster/histogram.js';
 
 /** @typedef {import('../raster/surface.js').Surface} Surface */
 /** @typedef {import('../raster/view.js').SurfaceView} SurfaceView */
 
 /**
  * A binary mask over a capture.
+ *
+ * There used to be a second way in here, a threshold picked by otsu off the
+ * capture's own histogram. It was the first pass at finding a sheet and it
+ * only worked when the bed and the paper were the two things in the frame.
+ * The moment the colour target went on the bed it started splitting the target
+ * off instead. The background estimate replaced it and this is now the plain
+ * threshold and nothing else.
  *
  * One byte per pixel rather than one bit. The memory is not the constraint on
  * this hardware and the bit twiddling version was measurably slower on the
@@ -56,21 +62,6 @@ export class Mask {
       }
     }
     return mask;
-  }
-
-  /**
-   * Threshold at whatever split the distribution suggests, which is what the
-   * intake stage does before anyone has written a profile for a collection.
-   *
-   * @param {Surface|SurfaceView} source
-   * @param {object} [options]
-   * @param {number} [options.channel]
-   * @param {boolean} [options.above]
-   * @returns {{mask: Mask, threshold: number}}
-   */
-  static otsu(source, { channel = 0, above = true } = {}) {
-    const threshold = histogramOf(source, { channel }).otsu();
-    return { mask: Mask.threshold(source, threshold, { channel, above }), threshold };
   }
 
   /** @returns {Size} */
