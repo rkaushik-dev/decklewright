@@ -199,7 +199,9 @@ export function list(member, options) {
  * @returns {Field}
  */
 export function group(fields, options) {
-  return field((value, path) => readGroup(fields, value, path), 'a group', options);
+  const spec = field((value, path) => readGroup(fields, value, path), 'a group', options);
+  // kept so a caller can walk the tree and list every setting a profile has
+  return { ...spec, fields };
 }
 
 /**
