@@ -60,7 +60,17 @@ describe('running until it settles', () => {
       sampling: Sampling.of(400),
     });
     expect(out.settled).toBe(true);
-    expect(out.passes).toBe(2);
+    expect(out.passes).toBe(1);
+  });
+
+  it('runs the anchor rules once, so a bleed cannot undo a snap', () => {
+    const out = planInDetail([bleedRule(Insets.uniform(10)), snapRule(64)], {
+      capture,
+      anchor,
+      sampling: Sampling.of(400),
+    });
+    expect(out.settled).toBe(true);
+    expect(out.plan.trail).toEqual(['bleed', 'snap']);
   });
 
   it('settles the aspect and the snap together, which the linear order could not', () => {

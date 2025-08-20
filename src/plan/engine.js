@@ -11,10 +11,17 @@ import { assertNoDuplicates, inPhase, ordered } from './rules/rule.js';
  * aspect after snapping breaks the snap. Both collections exist and both were
  * right.
  *
- * The engine runs the moving rules again until the crop stops changing. A set
- * that settles gives an answer both rules agree with. A set that does not
- * settle is a contradiction, and the plan says so rather than handing back
- * whichever rule happened to run last.
+ * The engine runs the shape and grid rules again until the crop stops
+ * changing. A set that settles gives an answer both rules agree with. A set
+ * that does not settle is a contradiction, and the plan says so rather than
+ * handing back whichever rule happened to run last.
+ *
+ * The anchor rules run exactly once, before any of that. They say where the
+ * crop starts, and they say it by measuring from the anchor rather than from
+ * the crop as it stands, so running one a second time would put the crop back
+ * where it began and undo everything after it. That was found the hard way: a
+ * bleed and a snap together never settled, because each pass the bleed reset
+ * what the snap had just done.
  */
 
 /** @typedef {import('./rules/rule.js').Rule} Rule */
@@ -31,12 +38,15 @@ export function runRules(rules, plan, context, { maxPasses = 6 } = {}) {
   assertPositiveInteger(maxPasses, 'maxPasses');
   assertNoDuplicates(rules);
   const sorted = ordered(rules);
-  const moving = sorted.filter((item) => item.phase !== 'check');
+  const anchors = inPhase(sorted, 'anchor');
+  const moving = sorted.filter((item) => item.phase === 'shape' || item.phase === 'grid');
   const checks = inPhase(sorted, 'check');
 
   let current = plan;
   let passes = 0;
-  let settled = false;
+  let settled = moving.length === 0;
+
+  for (const item of anchors) current = item.apply(current, context);
 
   for (let pass = 0; pass < maxPasses; pass += 1) {
     const before = current.rect;
