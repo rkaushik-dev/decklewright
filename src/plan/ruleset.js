@@ -17,6 +17,11 @@ import { assertNoDuplicates, ordered } from './rules/rule.js';
  *
  * A set always ends with notEmpty, whatever the profile said. There is no
  * collection anywhere that wants a crop with no area.
+ *
+ * This replaces the planner that ran the same steps in a fixed order. That one
+ * was easier to read and it could not be made right: it had to choose between
+ * honouring an aspect and honouring a snap, and both collections that use them
+ * are still here.
  */
 
 /**
