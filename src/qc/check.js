@@ -127,7 +127,9 @@ export function measurement(measured, stars, note) {
  * @returns {number}
  */
 export function starsFor(measured, ladder, { higherIsBetter = false } = {}) {
-  if (!Number.isFinite(measured)) return 0;
+  // an infinite reading is real: a patch with no variation at all has an
+  // infinite signal to noise ratio and deserves the top rung, not none of them
+  if (Number.isNaN(measured)) return 0;
   for (const rung of ladder) {
     const met = higherIsBetter ? measured >= rung.limit : measured <= rung.limit;
     if (met) return rung.stars;

@@ -143,6 +143,15 @@ describe('starsFor', () => {
     expect(starsFor(Number.NaN, ladder)).toBe(0);
   });
 
+  it('gives the top rung to an infinite reading that is better when higher', () => {
+    const snr = [
+      { stars: 4, limit: 40 },
+      { stars: 3, limit: 30 },
+    ];
+    expect(starsFor(Number.POSITIVE_INFINITY, snr, { higherIsBetter: true })).toBe(4);
+    expect(starsFor(Number.POSITIVE_INFINITY, ladder)).toBe(0);
+  });
+
   it('never awards more than the maximum', () => {
     expect(MAX_STARS).toBe(4);
     expect(starsFor(0, ladder)).toBeLessThanOrEqual(MAX_STARS);
