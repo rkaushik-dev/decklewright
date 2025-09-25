@@ -14,7 +14,11 @@ import { check, measurement, starsFor } from '../check.js';
  *
  * It is measured on the bed rather than on the sheet: paper has its own tone
  * and a sheet that is genuinely darker at one end would fail a check that
- * cannot tell the two apart.
+ * cannot tell the two apart. Any patch that touches the sheet or the colour
+ * target is dropped for the same reason, and dropping them is not optional:
+ * a grid over the whole capture measures the difference between paper and
+ * board, which is two hundred percent and means nothing. The caller says what
+ * to keep off, because it is the caller that knows what else was on the bed.
  */
 
 /** Spread as a share of the mean, per star. */
@@ -80,7 +84,11 @@ export function illuminationCheck({ across = 5, down = 4 } = {}) {
     needs: ['surface', 'limits'],
     run(context) {
       const region = context.bed ?? context.surface.bounds;
-      const means = patchMeans(context.surface, patchGrid(region, across, down));
+      const avoid = context.avoid ?? [context.sheet, context.target?.rect].filter(Boolean);
+      const patches = patchGrid(region, across, down).filter(
+        (patch) => !avoid.some((other) => patch.intersects(other)),
+      );
+      const means = patchMeans(context.surface, patches);
       if (means.length < 2) {
         return measurement(Number.NaN, 0, 'not enough of the bed to measure');
       }
