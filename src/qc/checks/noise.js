@@ -1,7 +1,8 @@
 import { histogramOf } from '../../raster/histogram.js';
-import { channelStats, signalToNoise } from '../../raster/stats.js';
+import { signalToNoise } from '../../raster/stats.js';
 import { SurfaceView } from '../../raster/view.js';
 import { check, measurement, starsFor } from '../check.js';
+import { lightestFlatPatch } from '../sample.js';
 
 /**
  * Noise and clipping.
@@ -32,47 +33,6 @@ export const CLIPPING_LADDER = Object.freeze([
 ]);
 
 /**
- * The inner part of a patch, which is the only part worth measuring.
- *
- * @param {import('../../raster/surface.js').Surface} surface
- * @param {import('../../geom/rect.js').Rect} rect
- * @param {object} [options]
- * @param {number} [options.margin]
- * @returns {SurfaceView|null}
- */
-export function patchView(surface, rect, { margin = 0.2 } = {}) {
-  const insetX = Math.floor(rect.width * margin);
-  const insetY = Math.floor(rect.height * margin);
-  const inner = rect.inset(insetX, insetY).intersect(surface.bounds);
-  if (inner.isEmpty) return null;
-  return new SurfaceView(surface, inner);
-}
-
-/**
- * The patch a noise measurement should use: light enough that the shot noise
- * is representative and not so light that it is clipped. The guidelines say a
- * mid to light neutral and this picks the lightest one under the clipping
- * point.
- *
- * @param {import('../../raster/surface.js').Surface} surface
- * @param {readonly {rect: import('../../geom/rect.js').Rect}[]} patches
- * @returns {SurfaceView|null}
- */
-export function flattestPatch(surface, patches) {
-  const top = surface.maxValue;
-  /** @type {{view: SurfaceView, mean: number}|null} */
-  let best = null;
-  for (const patch of patches) {
-    const view = patchView(surface, patch.rect);
-    if (!view) continue;
-    const stats = channelStats(view, 0);
-    if (stats.mean > top * 0.9 || stats.mean < top * 0.25) continue;
-    if (best === null || stats.mean > best.mean) best = { view, mean: stats.mean };
-  }
-  return best ? best.view : null;
-}
-
-/**
  * @returns {import('../check.js').Check}
  */
 export function noiseCheck() {
@@ -80,7 +40,7 @@ export function noiseCheck() {
     name: 'noise',
     needs: ['surface', 'target', 'limits'],
     run(context) {
-      const view = flattestPatch(context.surface, context.target.patches);
+      const view = lightestFlatPatch(context.surface, context.target.patches);
       if (!view) {
         return measurement(Number.NaN, 0, 'no patch of the target is usable for noise');
       }

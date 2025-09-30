@@ -1,6 +1,5 @@
-import { allChannelStats } from '../../raster/stats.js';
-import { SurfaceView } from '../../raster/view.js';
 import { check, measurement, starsFor } from '../check.js';
+import { channelMeans } from '../sample.js';
 
 /**
  * Gray balance, read off the step wedge.
@@ -21,24 +20,6 @@ export const GRAY_BALANCE_LADDER = Object.freeze([
   { stars: 2, limit: 12 },
   { stars: 1, limit: 24 },
 ]);
-
-/**
- * Read the mean of every channel over a patch, with a margin taken off so a
- * patch boundary that is a pixel out does not pull the reading.
- *
- * @param {import('../../raster/surface.js').Surface} surface
- * @param {import('../../geom/rect.js').Rect} rect
- * @param {object} [options]
- * @param {number} [options.margin]
- * @returns {number[]}
- */
-export function readPatch(surface, rect, { margin = 0.2 } = {}) {
-  const insetX = Math.floor(rect.width * margin);
-  const insetY = Math.floor(rect.height * margin);
-  const inner = rect.inset(insetX, insetY).intersect(surface.bounds);
-  if (inner.isEmpty) return [];
-  return allChannelStats(new SurfaceView(surface, inner)).map((stats) => stats.mean);
-}
 
 /**
  * @param {readonly number[]} channels
@@ -63,7 +44,7 @@ export function grayBalanceCheck() {
       }
 
       const errors = context.target.patches
-        .map((patch) => readPatch(context.surface, patch.rect))
+        .map((patch) => channelMeans(context.surface, patch.rect))
         .filter((channels) => channels.length >= 3)
         .map(neutralError);
 
@@ -98,7 +79,7 @@ export function castDirection(surface, patches) {
   let read = 0;
 
   for (const patch of patches) {
-    const channels = readPatch(surface, patch.rect);
+    const channels = channelMeans(surface, patch.rect);
     if (channels.length < 3) continue;
     const middle = (channels[0] + channels[1] + channels[2]) / 3;
     for (let c = 0; c < 3; c += 1) totals[c] += channels[c] - middle;

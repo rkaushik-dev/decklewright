@@ -1,7 +1,5 @@
-import { Rect } from '../../geom/rect.js';
-import { allChannelStats } from '../../raster/stats.js';
-import { SurfaceView } from '../../raster/view.js';
 import { check, measurement, starsFor } from '../check.js';
+import { gridOver, patchGrid, patchMeans } from '../sample.js';
 
 /**
  * Illumination uniformity.
@@ -30,49 +28,6 @@ export const ILLUMINATION_LADDER = Object.freeze([
 ]);
 
 /**
- * A grid of patches over a region, each one a fraction of the cell so a patch
- * that lands on an edge does not take the edge with it.
- *
- * @param {import('../../geom/rect.js').Rect} within
- * @param {number} across
- * @param {number} down
- * @param {object} [options]
- * @param {number} [options.margin]
- * @returns {Rect[]}
- */
-export function patchGrid(within, across, down, { margin = 0.25 } = {}) {
-  /** @type {Rect[]} */
-  const out = [];
-  const cellWidth = within.width / across;
-  const cellHeight = within.height / down;
-  const insetX = cellWidth * margin;
-  const insetY = cellHeight * margin;
-
-  for (let row = 0; row < down; row += 1) {
-    for (let column = 0; column < across; column += 1) {
-      const left = Math.round(within.left + column * cellWidth + insetX);
-      const top = Math.round(within.top + row * cellHeight + insetY);
-      const right = Math.round(within.left + (column + 1) * cellWidth - insetX);
-      const bottom = Math.round(within.top + (row + 1) * cellHeight - insetY);
-      out.push(Rect.fromEdges(left, top, Math.max(left + 1, right), Math.max(top + 1, bottom)));
-    }
-  }
-  return out;
-}
-
-/**
- * @param {import('../../raster/surface.js').Surface} surface
- * @param {readonly Rect[]} patches
- * @returns {number[]} the mean of the first channel of each patch
- */
-export function patchMeans(surface, patches) {
-  return patches
-    .map((rect) => rect.intersect(surface.bounds))
-    .filter((rect) => !rect.isEmpty)
-    .map((rect) => allChannelStats(new SurfaceView(surface, rect))[0].mean);
-}
-
-/**
  * @param {object} [options]
  * @param {number} [options.across]
  * @param {number} [options.down]
@@ -85,10 +40,7 @@ export function illuminationCheck({ across = 5, down = 4 } = {}) {
     run(context) {
       const region = context.bed ?? context.surface.bounds;
       const avoid = context.avoid ?? [context.sheet, context.target?.rect].filter(Boolean);
-      const patches = patchGrid(region, across, down).filter(
-        (patch) => !avoid.some((other) => patch.intersects(other)),
-      );
-      const means = patchMeans(context.surface, patches);
+      const means = patchMeans(context.surface, gridOver(region, across, down, { avoid }));
       if (means.length < 2) {
         return measurement(Number.NaN, 0, 'not enough of the bed to measure');
       }

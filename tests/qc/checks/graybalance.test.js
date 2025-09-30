@@ -8,7 +8,6 @@ import {
   castDirection,
   grayBalanceCheck,
   neutralError,
-  readPatch,
 } from '../../../src/qc/checks/graybalance.js';
 import { paint } from '../../helpers/bench.js';
 
@@ -43,23 +42,6 @@ function context(surface, tolerance = 6) {
     limits: { grayBalanceTolerance: tolerance },
   };
 }
-
-describe('readPatch', () => {
-  it('reads every channel of a flat patch', () => {
-    const surface = wedge([[10, 20, 30]]);
-    expect(readPatch(surface, PATCH_RECTS[0]).map(Math.round)).toEqual([10, 20, 30]);
-  });
-
-  it('ignores the edges of the patch', () => {
-    const surface = wedge([[100, 100, 100]]);
-    paint(surface, Rect.of(0, 0, 20, 1), [0, 0, 0]);
-    expect(readPatch(surface, PATCH_RECTS[0])[0]).toBe(100);
-  });
-
-  it('gives nothing back for a patch off the capture', () => {
-    expect(readPatch(wedge([[1, 1, 1]]), Rect.of(500, 500, 20, 20))).toEqual([]);
-  });
-});
 
 describe('neutralError', () => {
   it('is zero for a neutral patch', () => {

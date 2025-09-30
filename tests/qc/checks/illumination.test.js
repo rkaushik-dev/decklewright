@@ -7,8 +7,6 @@ import {
   ILLUMINATION_LADDER,
   darkestCorner,
   illuminationCheck,
-  patchGrid,
-  patchMeans,
 } from '../../../src/qc/checks/illumination.js';
 
 /**
@@ -36,44 +34,6 @@ function litBed(falloff) {
 function context(surface, tolerance = 0.1) {
   return { surface, limits: { illuminationTolerance: tolerance } };
 }
-
-describe('patchGrid', () => {
-  it('makes one patch per cell', () => {
-    expect(patchGrid(Rect.of(0, 0, 100, 100), 5, 4)).toHaveLength(20);
-  });
-
-  it('keeps every patch inside the region', () => {
-    const within = Rect.of(10, 20, 100, 80);
-    for (const patch of patchGrid(within, 4, 3)) {
-      expect(within.containsRect(patch)).toBe(true);
-    }
-  });
-
-  it('leaves a gap between patches', () => {
-    const patches = patchGrid(Rect.of(0, 0, 100, 100), 2, 1);
-    expect(patches[0].right).toBeLessThan(patches[1].left);
-  });
-
-  it('never makes a patch with no area', () => {
-    for (const patch of patchGrid(Rect.of(0, 0, 5, 5), 4, 4)) {
-      expect(patch.isEmpty).toBe(false);
-    }
-  });
-});
-
-describe('patchMeans', () => {
-  it('reads one number per patch', () => {
-    const surface = Surface.create({ width: 40, height: 40, layout: 'gray', fill: 100 });
-    const means = patchMeans(surface, patchGrid(surface.bounds, 2, 2));
-    expect(means).toEqual([100, 100, 100, 100]);
-  });
-
-  it('drops a patch that fell off the capture', () => {
-    const surface = Surface.create({ width: 40, height: 40, layout: 'gray', fill: 100 });
-    const means = patchMeans(surface, [Rect.of(0, 0, 10, 10), Rect.of(100, 100, 10, 10)]);
-    expect(means).toHaveLength(1);
-  });
-});
 
 describe('illuminationCheck', () => {
   it('gives four stars to an evenly lit bed', () => {

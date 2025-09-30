@@ -7,9 +7,7 @@ import {
   CLIPPING_LADDER,
   NOISE_LADDER,
   clippingCheck,
-  flattestPatch,
   noiseCheck,
-  patchView,
 } from '../../../src/qc/checks/noise.js';
 import { paint } from '../../helpers/bench.js';
 
@@ -53,50 +51,6 @@ function context(surface, limits = {}) {
     limits: { minimumSnr: 30, maximumClipping: 0.005, ...limits },
   };
 }
-
-describe('patchView', () => {
-  it('takes the middle of a patch', () => {
-    const view = patchView(wedge([100]), PATCH_RECTS[0]);
-    expect(view?.width).toBeLessThan(30);
-    expect(view?.width).toBeGreaterThan(10);
-  });
-
-  it('gives nothing back for a patch off the capture', () => {
-    expect(patchView(wedge([100]), Rect.of(500, 500, 10, 10))).toBeNull();
-  });
-});
-
-describe('flattestPatch', () => {
-  it('picks the lightest patch that is not near clipping', () => {
-    const surface = wedge([40, 120, 200, 250]);
-    const view = flattestPatch(
-      surface,
-      PATCH_RECTS.map((rect) => ({ rect })),
-    );
-    expect(view).not.toBeNull();
-    expect(view?.get(0, 0)).toBe(200);
-  });
-
-  it('skips patches that are too dark', () => {
-    const surface = wedge([10, 20, 30, 40]);
-    expect(
-      flattestPatch(
-        surface,
-        PATCH_RECTS.map((rect) => ({ rect })),
-      ),
-    ).toBeNull();
-  });
-
-  it('skips patches that are near white', () => {
-    const surface = wedge([250, 252, 254, 255]);
-    expect(
-      flattestPatch(
-        surface,
-        PATCH_RECTS.map((rect) => ({ rect })),
-      ),
-    ).toBeNull();
-  });
-});
 
 describe('noiseCheck', () => {
   it('gives four stars to a patch with no noise at all', () => {
