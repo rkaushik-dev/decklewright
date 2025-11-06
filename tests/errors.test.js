@@ -6,6 +6,7 @@ import {
   DeckleError,
   DetectionError,
   ERROR_CODES,
+  ManifestError,
   GeometryError,
   PipelineError,
   PlanError,
@@ -74,6 +75,7 @@ describe('the subclasses', () => {
     [PlanError, ERROR_CODES.PLAN],
     [QcError, ERROR_CODES.QC],
     [PipelineError, ERROR_CODES.PIPELINE],
+    [ManifestError, ERROR_CODES.MANIFEST],
     [StoreError, ERROR_CODES.STORE],
     [UnsupportedError, ERROR_CODES.UNSUPPORTED],
   ];

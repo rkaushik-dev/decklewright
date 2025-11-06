@@ -13,6 +13,7 @@ export const ERROR_CODES = Object.freeze({
   CODEC: 'DW_CODEC',
   DETECTION: 'DW_DETECTION',
   GEOMETRY: 'DW_GEOMETRY',
+  MANIFEST: 'DW_MANIFEST',
   PIPELINE: 'DW_PIPELINE',
   PLAN: 'DW_PLAN',
   PROFILE: 'DW_PROFILE',
@@ -117,6 +118,13 @@ export class QcError extends DeckleError {
 export class PipelineError extends DeckleError {
   constructor(message, details) {
     super(message, { code: ERROR_CODES.PIPELINE, details });
+  }
+}
+
+/** A sidecar or a manifest is missing, unreadable, or from a later version. */
+export class ManifestError extends DeckleError {
+  constructor(message, details) {
+    super(message, { code: ERROR_CODES.MANIFEST, details });
   }
 }
 
