@@ -1,5 +1,5 @@
 import { deliver, recordFailure } from '../store/index.js';
-import { policyFor } from './policy.js';
+import { keepGoing, policyFor } from './policy.js';
 import { runJob } from './runner.js';
 
 /**
@@ -106,23 +106,36 @@ export async function process(workspace, args, options = {}) {
 /**
  * The same over everything waiting in the incoming folder.
  *
+ * The policy decides whether one bad sheet stops the shift. A lab that has set
+ * that expects it to hold here as much as in a batch it assembled itself, and
+ * the first version of this ignored it, which meant a stand left running
+ * overnight worked two hundred captures against a scanner that had failed on
+ * the first one.
+ *
  * @param {import('../store/workspace.js').Workspace} workspace
  * @param {object} args
  * @param {Record<string, any>} args.profile
  * @param {import('../measure/resolution.js').Sampling} [args.sampling]
  * @param {Parameters<typeof runJob>[1]} [options]
- * @returns {Promise<{done: Awaited<ReturnType<typeof process>>[], counts: Record<string, number>}>}
+ * @returns {Promise<{done: Awaited<ReturnType<typeof process>>[], counts: Record<string, number>, stoppedEarly: boolean}>}
  */
 export async function processIncoming(workspace, { profile, sampling }, options = {}) {
   const { readBytes } = await import('../store/atomic.js');
   const waiting = await workspace.incoming();
+  const rules = options.policy ?? policyFor(profile);
 
   /** @type {Awaited<ReturnType<typeof process>>[]} */
   const done = [];
   /** @type {Record<string, number>} */
   const counts = {};
+  let failed = 0;
+  let stoppedEarly = false;
 
   for (const item of waiting) {
+    if (!keepGoing(rules, failed)) {
+      stoppedEarly = true;
+      break;
+    }
     const out = await process(
       workspace,
       {
@@ -132,10 +145,11 @@ export async function processIncoming(workspace, { profile, sampling }, options 
         sampling,
         path: item.path,
       },
-      options,
+      { ...options, policy: rules },
     );
     done.push(out);
     counts[out.entry.outcome] = (counts[out.entry.outcome] ?? 0) + 1;
+    if (out.entry.outcome === 'failed') failed += 1;
   }
-  return { done, counts };
+  return { done, counts, stoppedEarly };
 }
