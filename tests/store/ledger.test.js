@@ -1,8 +1,9 @@
-import { appendFile, mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { appendFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+import { scratch } from '../helpers/scratch.js';
 
 import {
   OUTCOMES,
@@ -15,18 +16,9 @@ import {
   summarise,
 } from '../../src/store/ledger.js';
 
-/** @type {string[]} */
-const made = [];
-
-afterEach(async () => {
-  await Promise.all(made.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
-
 /** @returns {Promise<string>} */
 async function ledgerPath() {
-  const root = await mkdtemp(join(tmpdir(), 'decklewright-ledger-'));
-  made.push(root);
-  return join(root, 'ledger.jsonl');
+  return join(await scratch('ledger'), 'ledger.jsonl');
 }
 
 const ENTRIES = [

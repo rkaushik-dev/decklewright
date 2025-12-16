@@ -1,8 +1,9 @@
-import { mkdtemp, readFile, readdir, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+import { scratch } from '../helpers/scratch.js';
 
 import {
   appendLine,
@@ -14,21 +15,6 @@ import {
   writeAtomic,
   writeSetAtomic,
 } from '../../src/store/atomic.js';
-
-/** @type {string[]} */
-const made = [];
-
-/** @returns {Promise<string>} */
-async function scratch() {
-  const path = await mkdtemp(join(tmpdir(), 'decklewright-'));
-  made.push(path);
-  return path;
-}
-
-afterEach(async () => {
-  const { rm } = await import('node:fs/promises');
-  await Promise.all(made.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
 
 const BYTES = new Uint8Array([1, 2, 3, 4]);
 

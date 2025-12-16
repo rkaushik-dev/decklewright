@@ -1,8 +1,9 @@
-import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+import { scratch } from '../../helpers/scratch.js';
 
 import { parseArgs } from '../../../src/cli/args.js';
 import * as crop from '../../../src/cli/commands/crop.js';
@@ -11,20 +12,6 @@ import * as plan from '../../../src/cli/commands/plan.js';
 import { encodePng } from '../../../src/codec/png/encode.js';
 import { Rect } from '../../../src/geom/rect.js';
 import { bench, paint } from '../../helpers/bench.js';
-
-/** @type {string[]} */
-const made = [];
-
-afterEach(async () => {
-  await Promise.all(made.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
-
-/** @returns {Promise<string>} */
-async function scratch() {
-  const root = await mkdtemp(join(tmpdir(), 'decklewright-cli-'));
-  made.push(root);
-  return root;
-}
 
 /**
  * @param {object} [options]

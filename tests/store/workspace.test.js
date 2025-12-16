@@ -1,8 +1,9 @@
-import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+import { scratch } from '../helpers/scratch.js';
 
 import { deriveOne } from '../../src/derive/oneshot.js';
 import { readCapture } from '../../src/detect/capture.js';
@@ -17,18 +18,9 @@ import { Workspace } from '../../src/store/workspace.js';
 import { bench, paint } from '../helpers/bench.js';
 
 const registry = new ProfileRegistry();
-/** @type {string[]} */
-const made = [];
-
-afterEach(async () => {
-  await Promise.all(made.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
-
 /** @returns {Promise<Workspace>} */
 async function workspace() {
-  const root = await mkdtemp(join(tmpdir(), 'decklewright-ws-'));
-  made.push(root);
-  return Workspace.open(root);
+  return Workspace.open(await scratch('ws'));
 }
 
 /**
@@ -87,9 +79,8 @@ describe('at', () => {
   });
 
   it('refuses a directory that is not a workspace', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'decklewright-plain-'));
-    made.push(root);
-    expect(() => Workspace.at(root)).toThrow(/not a workspace/);
+    const plain = await scratch('plain');
+    expect(() => Workspace.at(plain)).toThrow(/not a workspace/);
   });
 });
 

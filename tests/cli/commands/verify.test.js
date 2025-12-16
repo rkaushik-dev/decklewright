@@ -1,8 +1,9 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+import { scratch } from '../../helpers/scratch.js';
 
 import { parseArgs } from '../../../src/cli/args.js';
 import * as batch from '../../../src/cli/commands/batch.js';
@@ -15,20 +16,7 @@ import { writeAtomic } from '../../../src/store/atomic.js';
 import { Workspace } from '../../../src/store/workspace.js';
 import { bench, paint } from '../../helpers/bench.js';
 
-/** @type {string[]} */
-const made = [];
 const AT = new Date('2025-12-15T08:00:00Z');
-
-afterEach(async () => {
-  await Promise.all(made.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
-
-/** @returns {Promise<string>} */
-async function scratch() {
-  const root = await mkdtemp(join(tmpdir(), 'decklewright-verify-'));
-  made.push(root);
-  return root;
-}
 
 /** @returns {Uint8Array} */
 function capture() {

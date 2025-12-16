@@ -1,8 +1,6 @@
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { scratch } from '../helpers/scratch.js';
 
 import { deriveOne } from '../../src/derive/oneshot.js';
 import { readCapture } from '../../src/detect/capture.js';
@@ -15,18 +13,9 @@ import * as store from '../../src/store/index.js';
 import { bench, paint } from '../helpers/bench.js';
 
 const registry = new ProfileRegistry();
-/** @type {string[]} */
-const made = [];
-
-afterEach(async () => {
-  await Promise.all(made.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
-
 /** @returns {Promise<store.Workspace>} */
 async function workspace() {
-  const root = await mkdtemp(join(tmpdir(), 'decklewright-store-'));
-  made.push(root);
-  return store.Workspace.open(root);
+  return store.Workspace.open(await scratch('store'));
 }
 
 /**

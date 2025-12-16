@@ -1,8 +1,8 @@
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
+import { scratch } from '../helpers/scratch.js';
 
 import { encodePng } from '../../src/codec/png/encode.js';
 import { Rect } from '../../src/geom/rect.js';
@@ -16,18 +16,9 @@ import { bench, paint } from '../helpers/bench.js';
 
 const registry = new ProfileRegistry();
 const AT = new Date('2025-11-27T09:00:00Z');
-/** @type {string[]} */
-const made = [];
-
-afterEach(async () => {
-  await Promise.all(made.splice(0).map((path) => rm(path, { recursive: true, force: true })));
-});
-
 /** @returns {Promise<Workspace>} */
 async function workspace() {
-  const root = await mkdtemp(join(tmpdir(), 'decklewright-run-'));
-  made.push(root);
-  return Workspace.open(root);
+  return Workspace.open(await scratch('run'));
 }
 
 /**
