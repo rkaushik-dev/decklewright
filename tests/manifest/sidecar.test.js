@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
 
-import { deriveOne } from '../../src/derive/oneshot.js';
-import { readCapture } from '../../src/detect/capture.js';
-import { Rect } from '../../src/geom/rect.js';
 import {
   SIDECAR_VERSION,
   describeSidecar,
@@ -12,59 +9,14 @@ import {
   sidecarFor,
   writeSidecar,
 } from '../../src/manifest/sidecar.js';
-import { Sampling } from '../../src/measure/resolution.js';
-import { planCrop } from '../../src/plan/crop.js';
-import { ProfileRegistry } from '../../src/profile/registry.js';
-import { runQc } from '../../src/qc/runner.js';
-import { bench, paint } from '../helpers/bench.js';
-
-const registry = new ProfileRegistry();
-
-/**
- * @param {object} [options]
- * @returns {import('../../src/raster/surface.js').Surface}
- */
-function accession({ degrees = 0 } = {}) {
-  const surface = bench({
-    width: 300,
-    height: 240,
-    degrees,
-    halfWidth: 80,
-    halfHeight: 56,
-    centreX: 170,
-    centreY: 130,
-    layout: 'rgb',
-  });
-  for (let i = 0; i < 8; i += 1) {
-    paint(surface, Rect.of(14 + i * 10, 12, 10, 14), 20 + Math.round((i / 7) * 210));
-  }
-  paint(surface, Rect.of(20, 220, 120, 7), 190);
-  return surface;
-}
+import { worked } from '../helpers/accession.js';
 
 /**
  * @param {object} [options]
  * @returns {Parameters<typeof sidecarFor>[0]}
  */
-function parts({ graded = true, degrees = 0, id = 'g4181-1907' } = {}) {
-  const surface = accession({ degrees });
-  const profile = registry.get('house');
-  const reading = readCapture(surface);
-  const sampling = Sampling.of(400);
-  const { plan } = planCrop({ reading, profile, capture: surface.bounds, sampling });
-  const derived = deriveOne({ surface, profile, accession: id, sampling });
-
-  return {
-    accession: id,
-    profile,
-    surface,
-    reading,
-    plan,
-    files: derived.files,
-    quality: graded ? runQc({ surface, reading, profile, sampling }) : undefined,
-    warnings: derived.warnings,
-    created: new Date('2025-11-04T09:15:00Z'),
-  };
+function parts(options = {}) {
+  return { ...worked(options), created: new Date('2025-11-04T09:15:00Z') };
 }
 
 describe('sidecarFor', () => {

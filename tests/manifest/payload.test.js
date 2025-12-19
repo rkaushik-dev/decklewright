@@ -1,55 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { deriveOne } from '../../src/derive/oneshot.js';
-import { readCapture } from '../../src/detect/capture.js';
-import { Rect } from '../../src/geom/rect.js';
 import * as manifest from '../../src/manifest/index.js';
-import { Sampling } from '../../src/measure/resolution.js';
-import { planCrop } from '../../src/plan/crop.js';
-import { ProfileRegistry } from '../../src/profile/registry.js';
-import { runQc } from '../../src/qc/runner.js';
-import { bench, paint } from '../helpers/bench.js';
+import { worked } from '../helpers/accession.js';
 
-const registry = new ProfileRegistry();
 const AT = new Date('2025-11-18T10:30:00Z');
 
 /**
  * @param {object} [options]
  * @returns {Parameters<typeof manifest.deliveryFor>[0]}
  */
-function run({ id = 'g4181-1907', graded = true } = {}) {
-  const surface = bench({
-    width: 300,
-    height: 240,
-    halfWidth: 80,
-    halfHeight: 56,
-    centreX: 170,
-    centreY: 130,
-    layout: 'rgb',
-  });
-  for (let i = 0; i < 8; i += 1) {
-    paint(surface, Rect.of(14 + i * 10, 12, 10, 14), 20 + Math.round((i / 7) * 210));
-  }
-  paint(surface, Rect.of(20, 220, 120, 7), 190);
-
-  const profile = registry.get('house');
-  const reading = readCapture(surface);
-  const sampling = Sampling.of(400);
-  const { plan } = planCrop({ reading, profile, capture: surface.bounds, sampling });
-  const derived = deriveOne({ surface, profile, accession: id, sampling });
-
-  return {
-    accession: id,
-    profile,
-    surface,
-    reading,
-    plan,
-    files: derived.files,
-    quality: graded ? runQc({ surface, reading, profile, sampling }) : undefined,
-    warnings: derived.warnings,
-    version: '1.4.0',
-    at: AT,
-  };
+function run(options = {}) {
+  return { ...worked(options), version: '1.4.0', at: AT };
 }
 
 /** @returns {import('../../src/manifest/payload.js').Payload} */

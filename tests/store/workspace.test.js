@@ -5,59 +5,14 @@ import { describe, expect, it } from 'vitest';
 
 import { scratch } from '../helpers/scratch.js';
 
-import { deriveOne } from '../../src/derive/oneshot.js';
-import { readCapture } from '../../src/detect/capture.js';
-import { Rect } from '../../src/geom/rect.js';
-import { deliveryFor } from '../../src/manifest/index.js';
 import { SIDECAR_NAME } from '../../src/manifest/payload.js';
-import { Sampling } from '../../src/measure/resolution.js';
-import { planCrop } from '../../src/plan/crop.js';
-import { ProfileRegistry } from '../../src/profile/registry.js';
 import { writeAtomic } from '../../src/store/atomic.js';
 import { Workspace } from '../../src/store/workspace.js';
-import { bench, paint } from '../helpers/bench.js';
+import { delivery } from '../helpers/accession.js';
 
-const registry = new ProfileRegistry();
 /** @returns {Promise<Workspace>} */
 async function workspace() {
   return Workspace.open(await scratch('ws'));
-}
-
-/**
- * @param {string} [id]
- * @returns {import('../../src/manifest/payload.js').Payload}
- */
-function delivery(id = 'g4181-1907') {
-  const surface = bench({
-    width: 300,
-    height: 240,
-    halfWidth: 80,
-    halfHeight: 56,
-    centreX: 170,
-    centreY: 130,
-    layout: 'rgb',
-  });
-  for (let i = 0; i < 8; i += 1) {
-    paint(surface, Rect.of(14 + i * 10, 12, 10, 14), 20 + Math.round((i / 7) * 210));
-  }
-  paint(surface, Rect.of(20, 220, 120, 7), 190);
-
-  const profile = registry.get('house');
-  const reading = readCapture(surface);
-  const sampling = Sampling.of(400);
-  const { plan } = planCrop({ reading, profile, capture: surface.bounds, sampling });
-  const derived = deriveOne({ surface, profile, accession: id, sampling });
-
-  return deliveryFor({
-    accession: id,
-    profile,
-    surface,
-    reading,
-    plan,
-    files: derived.files,
-    version: '1.4.0',
-    at: new Date('2025-11-25T12:00:00Z'),
-  });
 }
 
 describe('open', () => {

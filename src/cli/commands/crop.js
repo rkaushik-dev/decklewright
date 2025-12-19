@@ -1,8 +1,11 @@
 import { join } from 'node:path';
 
-import { deriveOne } from '../../derive/oneshot.js';
 import { readImage } from '../../codec/registry.js';
+import { deriveFromPlan } from '../../derive/index.js';
+import { readCapture } from '../../detect/capture.js';
+import { planCrop } from '../../plan/crop.js';
 import { summarise as summarisePlan } from '../../plan/explain.js';
+import { derivativeRecipes } from '../../profile/settings.js';
 import { writeSetAtomic } from '../../store/atomic.js';
 import {
   CAPTURE_OPTIONS,
@@ -20,6 +23,11 @@ import {
  * the image files and nothing else: no sidecar, no ledger, no folder
  * structure. A run that has to be traceable goes through the batch command,
  * and the difference is deliberate rather than a gap.
+ *
+ * It walks the same steps the pipeline walks, in the same order, calling the
+ * same functions. It used to call a shorter path that did all of it in one go,
+ * and the two drifted: this one was still padding a crop the pipeline had
+ * stopped padding.
  */
 
 export const usage = 'deckle crop <capture> [options]';
@@ -52,11 +60,19 @@ export async function run({ options: given, positional }, sink) {
     const accession = given.name ?? capture.accession;
     const surface = readImage(capture.bytes, { path });
 
-    const derived = deriveOne({
+    const reading = readCapture(surface);
+    const planned = planCrop({
+      reading,
+      profile,
+      capture: surface.bounds,
+      sampling: samplingFrom(given.ppi, profile),
+    });
+    const derived = deriveFromPlan({
       surface,
+      plan: planned.plan,
       profile,
       accession,
-      sampling: samplingFrom(given.ppi, profile),
+      recipes: derivativeRecipes(profile),
     });
 
     const wanted = new Set(given.only ?? []);
@@ -70,11 +86,12 @@ export async function run({ options: given, positional }, sink) {
       return 1;
     }
 
-    sink.out(`${accession}: ${summarisePlan(derived.plan)}`);
+    sink.out(`${accession}: ${summarisePlan(planned.plan)}`);
     for (const file of files) {
       sink.out(`  ${file.fileName}, ${humanBytes(file.bytes.length)}, ${file.sampling}`);
     }
-    for (const warning of derived.warnings) sink.err(`warning: ${warning}`);
+    if (!planned.settled) sink.err('warning: the crop rules did not settle');
+    for (const warning of planned.plan.warnings) sink.err(`warning: ${warning}`);
 
     if (given['dry-run']) {
       sink.out(`would write ${files.length} files into ${given.out}`);

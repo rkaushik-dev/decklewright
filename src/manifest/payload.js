@@ -47,7 +47,7 @@ function utf8(text) {
  *
  * @param {object} args
  * @param {string} args.accession
- * @param {readonly import('../derive/oneshot.js').DerivedFile[]} args.files
+ * @param {readonly import('../derive/render.js').DerivedFile[]} args.files
  * @param {Record<string, any>} args.sidecar
  * @param {readonly import('./provenance.js').Event[]} [args.provenance]
  * @returns {Payload}

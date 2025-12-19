@@ -26,6 +26,16 @@ import { deskew } from '../raster/ops/rotate.js';
  */
 
 /**
+ * @typedef {object} DerivedFile
+ * @property {string} name the derivative name, master or thumb
+ * @property {string} fileName what it should be written as
+ * @property {Uint8Array} bytes
+ * @property {string} format
+ * @property {import('../measure/resolution.js').Sampling} sampling
+ * @property {string[]} notes
+ */
+
+/**
  * @typedef {object} Rendered
  * @property {string} name
  * @property {Surface} surface

@@ -71,7 +71,7 @@ export {
  * @param {import('../raster/surface.js').Surface} args.surface
  * @param {import('../detect/capture.js').CaptureReading} args.reading
  * @param {import('../plan/plan.js').CropPlan} args.plan
- * @param {readonly import('../derive/oneshot.js').DerivedFile[]} args.files
+ * @param {readonly import('../derive/render.js').DerivedFile[]} args.files
  * @param {Record<string, any>} [args.quality]
  * @param {readonly string[]} [args.warnings]
  * @param {string} [args.version] what to record as the agent

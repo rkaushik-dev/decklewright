@@ -63,9 +63,9 @@ describe('the barrel', () => {
     }
   });
 
-  it('still exports the whole job in one call', () => {
-    expect(typeof derive.deriveOne).toBe('function');
-    expect(typeof derive.deriveMany).toBe('function');
+  it('exports one way to derive a set and not two', () => {
+    expect(typeof derive.deriveFromPlan).toBe('function');
+    expect(derive.deriveOne).toBeUndefined();
   });
 
   it('exports the read back helpers, which is how a delivery is checked later', () => {
@@ -105,14 +105,9 @@ describe('deriveFromPlan', () => {
     expect(out.bytes).toBe(out.files.reduce((sum, f) => sum + f.bytes.length, 0));
   });
 
-  it('gives the same answer the one call path does', () => {
+  it('gives the same answer twice for the same plan', () => {
     const args = planned();
-    const one = derive.deriveOne({
-      surface: args.surface,
-      profile: args.profile,
-      accession: args.accession,
-      sampling: Sampling.of(400),
-    });
+    const one = derive.deriveFromPlan(args);
     const two = derive.deriveFromPlan(args);
     expect(two.files.map((f) => f.fileName)).toEqual(one.files.map((f) => f.fileName));
     expect(two.bytes).toBe(one.bytes);

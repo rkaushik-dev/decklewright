@@ -1,4 +1,6 @@
 import { namesFor, objectionsToNames } from './naming.js';
+
+/** @typedef {import('./render.js').DerivedFile} DerivedFile */
 import { encodeAll, sizeOf } from './recipe.js';
 import { renderAll } from './render.js';
 import { PipelineError } from '../errors.js';
@@ -50,14 +52,15 @@ export {
   safeStem,
   slug,
 } from './naming.js';
-export { deriveMany, deriveOne, describeDerived } from './oneshot.js';
 
 /**
  * Render, encode and name a set, given a plan somebody else made.
  *
- * This is the half of the one shot path that a stage wants: the reading and
- * the plan have already been done further up, and doing them again here would
- * be both slow and a second opinion nobody asked for.
+ * The reading and the plan have already been done further up, and doing them
+ * again here would be both slow and a second opinion nobody asked for. There
+ * used to be a call beside this one that did the whole job from a capture, and
+ * it went because two paths through the same work is two answers waiting to
+ * disagree.
  *
  * @param {object} args
  * @param {import('../raster/surface.js').Surface} args.surface
@@ -68,7 +71,7 @@ export { deriveMany, deriveOne, describeDerived } from './oneshot.js';
  * @param {object} [options]
  * @param {number} [options.level]
  * @param {number|readonly number[]} [options.fill]
- * @returns {{files: import('./oneshot.js').DerivedFile[], steps: string[], bytes: number}}
+ * @returns {{files: DerivedFile[], steps: string[], bytes: number}}
  */
 export function deriveFromPlan({ surface, plan, profile, accession, recipes }, options = {}) {
   const rendered = renderAll({ surface, plan, recipes }, { fill: options.fill ?? 0 });
@@ -105,8 +108,8 @@ export function deriveFromPlan({ surface, plan, profile, accession, recipes }, o
  * The file a caller means when it says the master, without having to know that
  * the profile calls it that.
  *
- * @param {readonly import('./oneshot.js').DerivedFile[]} files
- * @returns {import('./oneshot.js').DerivedFile}
+ * @param {readonly DerivedFile[]} files
+ * @returns {DerivedFile}
  */
 export function preservationCopy(files) {
   if (files.length === 0) throw new PipelineError('nothing was derived');
