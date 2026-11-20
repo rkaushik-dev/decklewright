@@ -87,7 +87,7 @@ class CheckTest {
             QcContext withSurface = QcContext.empty().withSurface(Surface.create(1, 1));
             assertThat(missingFrom(withSurface, List.of(Need.SURFACE, Need.TARGET)))
                     .isEqualTo(List.of(Need.TARGET));
-            // the original also held a null target, which is how absent reads here
+            // a target that was never set is empty, which is how absent reads
             assertThat(missingFrom(withSurface, List.of(Need.TARGET))).isEqualTo(List.of(Need.TARGET));
             assertThat(missingFrom(withSurface, List.of())).isEqualTo(List.of());
 
@@ -131,7 +131,7 @@ class CheckTest {
 
         @Test
         void runsACheckWhoseNeedsAreMet() {
-            // the original read a field of its own off a hand-made target; a target's range stands in
+            // the body reads the range off a hand-made target
             Check needy = Check.of(
                     "needy",
                     List.of(Need.TARGET),

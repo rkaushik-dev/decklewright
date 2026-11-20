@@ -10,9 +10,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * What the Java layer refuses outright where the original would have gone on and failed somewhere
- * less helpful: a buffer larger than an array can be, prepared tables of the wrong size, and a
- * buffer of the wrong storage.
+ * What the raster layer refuses outright, at the call that made the mistake, rather than going on
+ * and failing somewhere less helpful: a buffer larger than an array can be, prepared tables of the
+ * wrong size, and a buffer of the wrong storage.
  */
 class LimitsTest {
 

@@ -24,9 +24,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * The original functions take a {@link Sampling} or a bare ppi and turn the number into {@code
- * Sampling.of(ppi)}; the Java ones take a {@link Sampling}, so a bare figure is written that way
- * here.
+ * The conversions take a {@link Sampling}, so a bare frequency in ppi is written here as {@code
+ * Sampling.of(ppi)}.
  */
 class PhysicalTest {
 

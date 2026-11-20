@@ -18,8 +18,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * The option records that stand in for the original's option bags: their defaults are the
- * original's, and each {@code withX} changes only its own part.
+ * The option records: what each one defaults to, and that each {@code withX} changes only its own
+ * part.
  */
 class OptionsTest {
 

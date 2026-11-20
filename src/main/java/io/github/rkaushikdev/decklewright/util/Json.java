@@ -11,8 +11,8 @@ import java.util.Optional;
 /**
  * The json the lab writes and reads: sidecars, provenance chains, the ledger and batch reports.
  *
- * <p>Output is byte for byte what the lab's files have always held. Keys keep their insertion
- * order, numbers are written by {@link NumberText#of(double)}, a non finite number is written as
+ * <p>Output has one canonical form, fixed byte for byte. Keys keep their insertion order, numbers
+ * are written by {@link NumberText#of(double)}, a non finite number is written as
  * {@code null}, and an indented document puts {@code ": "} between a key and its value, one member
  * per line, with empty objects and arrays written as {@code {}} and {@code []}. Those files are
  * digested and the digests are delivered, so a formatting difference is a fixity failure.
@@ -62,7 +62,12 @@ public final class Json {
         return new Reader(text).document();
     }
 
-    /** The text as a quoted json string, escaped exactly as the lab's files escape it. */
+    /**
+     * The text as a quoted json string. A quote, a backslash and the controls with a short escape
+     * ({@code \b \f \n \r \t}) get that escape; any other control below U+0020 and any lone
+     * surrogate is written as a backslash, a {@code u} and four lower case hex digits; everything
+     * else, a forward slash and a surrogate pair included, is written as it is.
+     */
     public static String quote(String text) {
         StringBuilder out = new StringBuilder(text.length() + 2);
         quote(out, text);

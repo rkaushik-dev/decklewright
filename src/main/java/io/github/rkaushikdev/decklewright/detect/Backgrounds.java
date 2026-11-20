@@ -219,7 +219,7 @@ public final class Backgrounds {
         double[] mean = bed.mean().stream().mapToDouble(Double::doubleValue).toArray();
         double[] spread =
                 bed.stdDev().stream().mapToDouble(value -> Math.max(1, value)).toArray();
-        // A channel the background does not describe never counts, as it never did.
+        // A channel the background does not describe never counts.
         int compared = Math.min(channels, Math.min(mean.length, spread.length));
 
         int at = 0;

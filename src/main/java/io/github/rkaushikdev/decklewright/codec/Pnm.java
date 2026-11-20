@@ -234,9 +234,9 @@ public final class Pnm {
     }
 
     /**
-     * A token read as a whole number, leniently, as the lab's files have always been read: leading
-     * blank space skipped, an optional sign, then the longest run of digits, with anything after it
-     * ignored, so {@code 4x} reads as four. Not a number when there are no digits at all.
+     * A token read as a whole number, leniently: leading blank space skipped, an optional sign,
+     * then the longest run of digits, with anything after it ignored, so {@code 4x} reads as four.
+     * Not a number when there are no digits at all.
      */
     private static double parseInteger(String token) {
         int i = 0;

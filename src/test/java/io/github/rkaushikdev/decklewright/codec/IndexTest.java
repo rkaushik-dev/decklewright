@@ -31,12 +31,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * The layer as the rest of the tree sees it. The original checked its barrel module; the Java layer
- * has no barrel, so this checks the public types of the three packages instead.
+ * The layer as the rest of the tree sees it, through the public types of its three packages.
  */
 class IndexTest {
 
-    /** Every public type of the layer that holds functions or constants, as the barrel exported them. */
+    /** Every public type of the layer that holds functions or constants. */
     private static final List<Class<?>> LAYER = List.of(
             Codecs.class,
             Inspections.class,
@@ -69,7 +68,7 @@ class IndexTest {
     }
 
     @Nested
-    class TheBarrel {
+    class ThePublicTypes {
         @Test
         void exportsTheThreeEntryPointsTheStagesUse() {
             for (String name : List.of("readImage", "writeImage", "probeImage", "inspect", "triage")) {
@@ -78,7 +77,7 @@ class IndexTest {
         }
 
         @Test
-        void exportsNoUndefinedBindings() throws IllegalAccessException {
+        void holdsNoNullConstants() throws IllegalAccessException {
             for (Class<?> type : LAYER) {
                 for (Field field : type.getFields()) {
                     if (Modifier.isStatic(field.getModifiers())) {

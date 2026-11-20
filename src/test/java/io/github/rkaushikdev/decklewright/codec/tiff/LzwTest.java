@@ -26,8 +26,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 class LzwTest {
 
     /**
-     * Seeded noise in the byte range. The original multiplied in doubles, which round past two to the
-     * fifty third, before masking; doing the same keeps the sequence identical.
+     * Seeded noise in the byte range. The product is taken in doubles, which round once it passes
+     * two to the fifty third, and then masked to thirty one bits; the sequence is fixed by that
+     * rounding.
      */
     private static int[] noise(int count, int seed) {
         int[] out = new int[count];

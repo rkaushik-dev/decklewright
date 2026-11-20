@@ -93,9 +93,11 @@ public final class Uint8Samples extends Samples {
     }
 
     /**
-     * The byte a {@code Uint8Array} would hold after storing the value. The remainder is exact and
-     * keeps the sign, so truncating it agrees with truncating the value itself on the low eight
-     * bits, and it is not a number for the infinities, which casts to zero as not a number does.
+     * The byte a sample holds after the value is stored: truncated toward zero, then wrapped
+     * modulo two hundred and fifty six, with not a number and the infinities storing zero. The
+     * remainder is exact and keeps the sign, so truncating it agrees with truncating the value
+     * itself on the low eight bits, and it is not a number for the infinities, which casts to zero
+     * as not a number does.
      */
     static byte stored(double value) {
         return (byte) (int) (value % 256);

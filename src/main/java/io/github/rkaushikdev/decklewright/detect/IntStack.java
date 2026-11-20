@@ -7,7 +7,7 @@ import java.util.Arrays;
  *
  * <p>A fill over a sheet visits millions of pixels, and a stack of boxed integers would allocate
  * an object for every coordinate it pushes. The fills push coordinates in pairs and pop them in
- * reverse, exactly as they did on a plain array.
+ * reverse, last pushed first, so a fill always visits pixels in the same order.
  */
 final class IntStack {
     private static final int INITIAL_CAPACITY = 64;

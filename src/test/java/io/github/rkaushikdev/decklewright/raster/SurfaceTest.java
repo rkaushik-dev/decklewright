@@ -49,8 +49,8 @@ class SurfaceTest {
             assertThatThrownBy(() -> Surface.create(0, 4))
                     .isInstanceOf(BadArgumentError.class)
                     .hasMessageFindingMatch("width must be a whole number");
-            // A fractional extent cannot be written against an int parameter; a negative one is the
-            // nearest bad extent Java can pass, and it is refused by the same rule.
+            // The extents are ints, so a fractional one cannot be passed; a negative one is refused
+            // by the same rule.
             assertThatThrownBy(() -> Surface.create(-4, 4))
                     .isInstanceOf(BadArgumentError.class)
                     .hasMessageFindingMatch("whole number");
@@ -148,7 +148,7 @@ class SurfaceTest {
         }
 
         @Test
-        void wrapsAValueThatDoesNotFitTheDepthAsATypedArrayDoes() {
+        void wrapsAValueThatDoesNotFitTheDepthModuloItsRange() {
             Surface s = Surface.create(1, 1, Layout.GRAY, 8);
             s.set(0, 0, 0, 300);
             assertThat(s.get(0, 0, 0)).isEqualTo(44);
@@ -172,8 +172,7 @@ class SurfaceTest {
             assertThatThrownBy(() -> s.row(2))
                     .isInstanceOf(BadArgumentError.class)
                     .hasMessageFindingMatch("outside the surface");
-            // A fractional row cannot be written against an int parameter; a negative one is the
-            // nearest bad row Java can pass.
+            // The row is an int, so a fractional one cannot be passed; a negative one is outside.
             assertThatThrownBy(() -> s.row(-1))
                     .isInstanceOf(BadArgumentError.class)
                     .hasMessageFindingMatch("outside the surface");
@@ -206,7 +205,7 @@ class SurfaceTest {
     }
 
     @Nested
-    class CloneAndLike {
+    class CopyAndLike {
         @Test
         void copiesTheSamplesIntoANewBuffer() {
             Surface s = Surface.create(2, 2, Layout.GRAY, 8, 3);

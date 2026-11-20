@@ -93,10 +93,11 @@ public final class Uint16Samples extends Samples {
     }
 
     /**
-     * The value a {@code Uint16Array} would hold after storing the number. The remainder is exact
-     * and keeps the sign, so truncating it agrees with truncating the value itself on the low
-     * sixteen bits, and it is not a number for the infinities, which casts to zero as not a number
-     * does.
+     * The value a sample holds after the number is stored: truncated toward zero, then wrapped
+     * modulo sixty five thousand five hundred and thirty six, with not a number and the infinities
+     * storing zero. The remainder is exact and keeps the sign, so truncating it agrees with
+     * truncating the value itself on the low sixteen bits, and it is not a number for the
+     * infinities, which casts to zero as not a number does.
      */
     static short stored(double value) {
         return (short) (int) (value % 65536);

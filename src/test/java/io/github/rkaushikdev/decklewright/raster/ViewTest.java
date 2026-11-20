@@ -52,8 +52,8 @@ class ViewTest {
 
         @Test
         void refusesAnythingThatIsNotASurface() {
-            // Java's types only let a surface through, so the one thing that is not a surface a
-            // caller can still hand over is no surface at all.
+            // The parameter only takes a surface, so the one thing that is not a surface a caller
+            // can still hand over is no surface at all.
             assertThatThrownBy(() -> new SurfaceView(null, Rect.of(0, 0, 1, 1)))
                     .isInstanceOf(BadArgumentError.class)
                     .hasMessageFindingMatch("needs a surface");

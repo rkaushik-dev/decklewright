@@ -142,8 +142,8 @@ public abstract sealed class Raster implements JsonValue permits Surface, Surfac
     public abstract void set(int x, int y, int channel, int value);
 
     /**
-     * Stores a number into one sample as a typed array would: truncated toward zero, then reduced to
-     * the bits the depth holds.
+     * Stores a number into one sample, truncated toward zero and then reduced to the bits the depth
+     * holds, as {@link Samples#set(int, double)} stores it.
      *
      * @throws BadArgumentError when the pixel is outside or the layout has no such channel
      */

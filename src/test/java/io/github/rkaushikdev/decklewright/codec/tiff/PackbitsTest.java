@@ -171,8 +171,8 @@ class PackbitsTest {
             int seed = 3;
             int[] values = new int[1000];
             for (int i = 0; i < values.length; i += 1) {
-                // the original multiplied in doubles, which round past two to the fifty third, before
-                // masking; doing the same keeps the sequence identical
+                // the product is taken in doubles, which round once it passes two to the fifty
+                // third, and then masked to thirty one bits; the sequence is fixed by that rounding
                 seed = (int) (long) (seed * 1103515245.0 + 12345.0) & 0x7fffffff;
                 values[i] = seed % 256;
             }

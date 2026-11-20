@@ -53,7 +53,7 @@ public final class Sheets {
     public static SheetFinding findSheet(Surface surface, SheetOptions options) {
         double minimumCoverage = Guards.requireInRange(options.minimumCoverage(), 0, 1, "minimumCoverage");
 
-        // A fraction of zero has always meant the default border, rather than no border at all.
+        // A fraction of zero means the default border, rather than no border at all.
         double fraction = options.fraction();
         boolean fractionGiven = fraction != 0 && !Double.isNaN(fraction);
         Mask raw = fractionGiven

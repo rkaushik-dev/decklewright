@@ -268,8 +268,8 @@ class TagsTest {
 
         @Test
         void isFrozen() {
-            // The original froze three objects of codes. They are enums here, which is frozen by
-            // construction: every field of each is final, so nothing can be reassigned.
+            // The three code tables are enums, which are frozen by construction: every field of
+            // each is final, so nothing can be reassigned.
             for (Class<?> table : List.of(Compression.class, Photometric.class, ResolutionUnit.class)) {
                 assertThat(table.isEnum()).as(table.getSimpleName()).isTrue();
                 for (Field field : table.getDeclaredFields()) {

@@ -31,9 +31,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 class GuardsTest {
 
     @Nested
-    class Assert {
+    class Require {
         @Test
-        void passesATruthyConditionThroughSilently() {
+        void passesATrueConditionThroughSilently() {
             assertThatCode(() -> require(true, "never")).doesNotThrowAnyException();
         }
 
@@ -49,7 +49,7 @@ class GuardsTest {
     }
 
     @Nested
-    class AssertFinite {
+    class RequireFinite {
         @Test
         void returnsTheValueItWasGiven() {
             assertThat(requireFinite(3.5, "ppi")).isEqualTo(3.5);
@@ -57,7 +57,7 @@ class GuardsTest {
         }
 
         static Stream<Arguments> rejected() {
-            // undefined and null are the same absence in Java, so null stands for both.
+            // null stands for a value that is not there at all.
             return Stream.of(
                     Arguments.of(Double.NaN),
                     Arguments.of(Double.POSITIVE_INFINITY),
@@ -76,7 +76,7 @@ class GuardsTest {
     }
 
     @Nested
-    class AssertInteger {
+    class RequireInteger {
         @Test
         void acceptsWholeNumbersIncludingZeroAndNegatives() {
             assertThat(requireInteger(0, "x")).isEqualTo(0);
@@ -90,7 +90,7 @@ class GuardsTest {
     }
 
     @Nested
-    class AssertPositiveAndAssertNonNegative {
+    class RequirePositiveAndRequireNonNegative {
         @Test
         void separatesZeroFromTheNegatives() {
             assertThatThrownBy(() -> requirePositive(0, "w")).hasMessageFindingMatch("greater than zero");
@@ -100,7 +100,7 @@ class GuardsTest {
     }
 
     @Nested
-    class AssertPositiveInteger {
+    class RequirePositiveInteger {
         @Test
         void wantsBothProperties() {
             assertThat(requirePositiveInteger(7, "n")).isEqualTo(7);
@@ -110,7 +110,7 @@ class GuardsTest {
     }
 
     @Nested
-    class AssertInRange {
+    class RequireInRange {
         @Test
         void isInclusiveAtBothEnds() {
             assertThat(requireInRange(0, 0, 1, "t")).isEqualTo(0);
@@ -128,7 +128,7 @@ class GuardsTest {
     }
 
     @Nested
-    class AssertOneOf {
+    class RequireOneOf {
         @Test
         void returnsTheMatchedMember() {
             assertThat(requireOneOf("gray", List.of("gray", "rgb"), "layout")).isEqualTo("gray");
@@ -142,7 +142,7 @@ class GuardsTest {
     }
 
     @Nested
-    class AssertNonEmptyString {
+    class RequireNonEmptyString {
         @Test
         void rejectsTheEmptyStringAndNonStrings() {
             assertThat(requireNonEmptyString("q17", "sheet")).isEqualTo("q17");
@@ -152,9 +152,9 @@ class GuardsTest {
     }
 
     @Nested
-    class AssertPlainObject {
+    class RequirePlainObject {
         @Test
-        void acceptsObjectLiteralsAndNullPrototypeBags() {
+        void acceptsFixedAndMutableStringKeyedMaps() {
             assertThat(requirePlainObject(Map.of("a", 1), "profile")).isEqualTo(Map.of("a", 1));
             assertThat(requirePlainObject(new LinkedHashMap<String, Object>(), "profile"))
                     .isEqualTo(Map.of());
@@ -177,7 +177,7 @@ class GuardsTest {
     }
 
     @Nested
-    class AssertArrayOf {
+    class RequireListOf {
         @Test
         void mapsTheCheckerOverTheMembers() {
             assertThat(requireListOf(List.of(1, 2, 3), (v, i) -> requireInteger(v, "n"), "list"))

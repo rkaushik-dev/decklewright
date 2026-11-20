@@ -18,8 +18,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 /**
- * The small value types the Java layer adds where the original passed a number, an array or a
- * string: fills, tap lists, kernels made by hand and the named modes.
+ * The small value types of the raster layer: fills, tap lists, kernels made by hand and the named
+ * modes.
  */
 class ValuesTest {
 

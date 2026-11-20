@@ -109,7 +109,7 @@ class MaskTest {
         }
 
         @Test
-        void normalisesAnyTruthyValueToOne() {
+        void normalisesAnyNonZeroValueToOne() {
             Mask mask = new Mask(2, 2);
             mask.set(0, 0, 7);
             assertThat(mask.get(0, 0)).isEqualTo(1);

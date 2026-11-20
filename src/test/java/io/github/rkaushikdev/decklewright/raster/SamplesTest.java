@@ -10,8 +10,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 /**
- * The sample storage, which has no counterpart file in the original: it stands in for the typed
- * arrays, so this pins down that it stores exactly as they do.
+ * The sample storage: how a store truncates and wraps at each depth, which views share samples and
+ * which copies own them, and how one run is copied into another.
  */
 class SamplesTest {
 
@@ -33,7 +33,7 @@ class SamplesTest {
             "1e20, 0",
             "9007199254740994, 2"
         })
-        void atEightBitsKeepsWhatAUint8ArrayKeeps(double value, int stored) {
+        void atEightBitsTruncatesThenWrapsModulo256(double value, int stored) {
             Uint8Samples samples = Uint8Samples.allocate(1);
             samples.set(0, value);
             assertThat(samples.get(0)).isEqualTo(stored);
@@ -52,7 +52,7 @@ class SamplesTest {
             "9223372036854777856, 2048",
             "-9223372036854777856, 63488"
         })
-        void atSixteenBitsKeepsWhatAUint16ArrayKeeps(double value, int stored) {
+        void atSixteenBitsTruncatesThenWrapsModulo65536(double value, int stored) {
             Uint16Samples samples = Uint16Samples.allocate(1);
             samples.set(0, value);
             assertThat(samples.get(0)).isEqualTo(stored);
@@ -129,7 +129,7 @@ class SamplesTest {
         }
 
         @Test
-        void refusesToReachOutsideTheRunWhereATypedArrayWouldSayNothing() {
+        void refusesToReachOutsideTheRun() {
             Samples row = Uint8Samples.allocate(8).subarray(2, 4);
             assertThatThrownBy(() -> row.get(2)).isInstanceOf(IndexOutOfBoundsException.class);
             assertThatThrownBy(() -> row.set(-1, 1)).isInstanceOf(IndexOutOfBoundsException.class);

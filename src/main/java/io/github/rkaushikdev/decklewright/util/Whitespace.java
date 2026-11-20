@@ -7,9 +7,10 @@ import java.util.Locale;
  *
  * <p>Lengths, tolerances and profile values are typed into profiles or pasted from work orders and spreadsheets,
  * which bring non-breaking and other Unicode spaces with them. The readers skip exactly the
- * characters ECMAScript counts as white space or a line terminator, which is the set the profiles
- * have always been read with. {@link String#trim()}, {@link String#strip()} and the regex {@code \s}
- * each skip a different set, so nothing here uses them.
+ * Unicode space separators (general category Zs, which includes U+00A0), the five ASCII controls
+ * from tab to carriage return, the line and paragraph separators U+2028 and U+2029, and the byte
+ * order mark U+FEFF. {@link String#trim()}, {@link String#strip()} and the regex {@code \s} each
+ * skip a different set, so nothing here uses them.
  */
 public final class Whitespace {
     /**

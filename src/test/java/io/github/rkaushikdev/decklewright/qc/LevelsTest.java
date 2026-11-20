@@ -147,7 +147,7 @@ class LevelsTest {
         void breaksATieByNameSoAReportIsStable() {
             List<Shortfall> out = shortfall(List.of(finding("z", 1), finding("a", 1)), 3);
             assertThat(out.stream().map(Shortfall::name)).containsExactly("a", "z");
-            // localeCompare's order, not code point order: a capital does not jump the queue
+            // case-insensitive order, not code point order: a capital does not jump the queue
             List<Shortfall> cased = shortfall(
                     List.of(
                             finding("Sharpness", 1),

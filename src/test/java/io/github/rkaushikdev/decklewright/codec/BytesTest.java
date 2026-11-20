@@ -40,7 +40,7 @@ class BytesTest {
         }
 
         @Test
-        void worksOnASubarrayOfALargerBuffer() {
+        void worksOnARangeOfALargerBuffer() {
             byte[] whole = ascii("xx123456789xx");
             assertThat(crc32(whole, 2, 9)).isEqualTo(0xcbf43926L);
         }

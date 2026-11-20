@@ -30,14 +30,14 @@ import org.junit.jupiter.api.Test;
 
 class EncodeTest {
 
-    /** Seeded noise over every sample, the same sequence the original suite used. */
+    /** Seeded noise over every sample, the same sequence on every run. */
     private static Surface noisy(int width, int height, Layout layout, int depth) {
         Surface s = Surface.create(width, height, layout, depth);
         Samples data = s.data();
         int seed = 7;
         for (int i = 0; i < data.length(); i += 1) {
-            // the original multiplied in doubles, which round past two to the fifty third, before
-            // masking; doing the same keeps the noise identical
+            // the product is taken in doubles, which round once it passes two to the fifty third,
+            // and then masked to thirty one bits; the sequence is fixed by that rounding
             seed = (int) (long) (seed * 1103515245.0 + 12345.0) & 0x7fffffff;
             data.set(i, seed % (s.maxValue() + 1));
         }
@@ -73,10 +73,9 @@ class EncodeTest {
 
         @Test
         void refusesALayoutPngCannotCarry() {
-            // The original forged a surface whose layout was cmyk. A Java raster can only hold a
-            // Layout and png carries every one of them, so the nearest bad input is the layout name
-            // itself, which is refused before any surface can be made; and every layout that can be
-            // made is carried.
+            // A raster can only hold a Layout and png carries every one of them, so the only bad
+            // input is an unknown layout name, such as cmyk, which is refused before any surface
+            // can be made; and every layout that can be made is carried.
             assertThatThrownBy(() -> Surface.create(1, 1, Layout.parse("cmyk")))
                     .isInstanceOf(BadArgumentError.class)
                     .hasMessageFindingMatch("unknown layout cmyk");

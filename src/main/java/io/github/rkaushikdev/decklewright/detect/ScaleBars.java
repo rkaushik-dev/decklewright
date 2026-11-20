@@ -165,7 +165,7 @@ public final class ScaleBars {
     /**
      * The mask's byte at a position that need not be whole pixels, because nothing makes a bar's rect
      * whole. Off the mask reads zero. On it, the position is read at the buffer offset it works out
-     * to, and an offset that is not a whole number reads zero, as the original's untyped read did.
+     * to, and an offset that is not a whole number reads zero, since no sample sits there.
      */
     private static int pixelAt(Mask mask, double x, double y) {
         if (x < 0 || y < 0 || x >= mask.width() || y >= mask.height()) {

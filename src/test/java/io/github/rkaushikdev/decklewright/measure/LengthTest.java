@@ -43,7 +43,7 @@ class LengthTest {
 
         @Test
         void refusesAUnitItDoesNotKnow() {
-            // A Java Length takes only a Unit, so the unknown label fails where it is read.
+            // A Length takes only a Unit, so the unknown label fails where it is read.
             assertThatThrownBy(() -> Length.of(3, Unit.parse("px")))
                     .isInstanceOf(BadArgumentError.class)
                     .hasMessageFindingMatch("unknown unit px");
@@ -111,7 +111,7 @@ class LengthTest {
 
         @Test
         void refusesAnOperandThatIsNotALength() {
-            // The operands are typed, so the number 3 and the string '3mm' cannot be passed; null can.
+            // The operands are typed as lengths, so null is the one operand that is not a length.
             assertThatThrownBy(() -> Length.of(1, INCH).plus(null))
                     .isInstanceOf(BadArgumentError.class)
                     .hasMessageFindingMatch("other must be a Length");
@@ -187,7 +187,7 @@ class LengthTest {
     }
 
     @Nested
-    class AssertLength {
+    class RequireLength {
         @Test
         void namesTheArgumentItWasChecking() {
             assertThatThrownBy(() -> requireLength("3mm", "bleed"))

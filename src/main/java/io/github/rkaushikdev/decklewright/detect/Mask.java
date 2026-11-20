@@ -172,7 +172,7 @@ public final class Mask {
         return (double) count() / data.length;
     }
 
-    /** A copy with a buffer of its own (the original's {@code clone()}). */
+    /** A copy with a buffer of its own. */
     public Mask copy() {
         return new Mask(width, height, data.clone());
     }

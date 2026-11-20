@@ -8,7 +8,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Numbers written the way the lab's reports have always written them.
+ * Numbers written the way the lab's reports write them.
  *
  * <p>Every message, sidecar and report in this tree prints numbers in one fixed shape: the
  * shortest decimal that reads back as the same double, with no trailing {@code .0} on a whole
@@ -18,8 +18,8 @@ import java.util.regex.Pattern;
  * uses it for output.
  *
  * <p>{@link #fixed(double, int)} rounds the exact binary value half away from zero, which is what
- * a fixed-point figure in the reports has always meant, and {@link #parse(String)} reads a typed
- * figure back the way the lab's tools always have.
+ * a fixed-point figure in the reports means, and {@link #parse(String)} reads a typed figure back
+ * strictly: a decimal, an infinity or a prefixed integer, and nothing else.
  */
 public final class NumberText {
     private static final Pattern DECIMAL_TEXT =
@@ -114,8 +114,7 @@ public final class NumberText {
     }
 
     /**
-     * The number a piece of text spells, read the way the lab's tools have always read a typed
-     * figure, or not a number when it spells none.
+     * The number a piece of text spells as a typed figure, or not a number when it spells none.
      *
      * <p>Blank space at either end is ignored ({@link Whitespace#trim(String)}), and blank text is
      * zero. A decimal may carry a sign, may start or end with its point ({@code .5}, {@code 5.}),

@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 class ValidateTest {
 
-    /** A sensible profile with the written settings on top, as the original's object spread put them. */
+    /** A sensible profile with the written settings on top, replacing its top level keys. */
     private static Profile profile(Map<String, Object> written) {
         Map<String, Object> document = bag(
                 "name",
@@ -169,7 +169,7 @@ class ValidateTest {
     }
 
     @Nested
-    class AssertUsable {
+    class RequireUsable {
         @Test
         void passesASensibleProfileThrough() {
             Profile good = profile(bag());

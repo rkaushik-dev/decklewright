@@ -20,13 +20,16 @@ final class PlainData {
     /**
      * True when the map holds a value for the key. An entry holding an empty {@link Optional} is a
      * value that is not there, the same as {@link io.github.rkaushikdev.decklewright.util.Json} treats
-     * one, which is the closest Java has to a key written with an undefined value.
+     * one, so a key can be present in a map and still say nothing.
      */
     static boolean has(Map<?, ?> bag, String key) {
         return bag.containsKey(key) && !(bag.get(key) instanceof Optional<?> optional && optional.isEmpty());
     }
 
-    /** A deep copy that the caller owns and may change, which is what {@code structuredClone} gives. */
+    /**
+     * A deep copy that the caller owns and may change: every map and list is copied, keys in order,
+     * and everything else is shared, since a string, a number or a boolean cannot change.
+     */
     static Map<String, Object> copyOf(Map<?, ?> map) {
         Map<String, Object> out = new LinkedHashMap<>();
         map.forEach((key, value) -> out.put(String.valueOf(key), copy(value)));

@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-/** Not in the original suite: the readers skip the blank space a pasted figure brings with it. */
+/** Covers the readers skipping the blank space a pasted figure brings with it. */
 class PastedBlanksTest {
     private static final char NO_BREAK_SPACE = 0xA0;
 

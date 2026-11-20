@@ -29,17 +29,18 @@ public final class Levels {
             Map.entry(4, "four stars"));
 
     /**
-     * The order the original's {@code localeCompare} put check names in, for breaking a tie.
+     * The order check names are put in for breaking a tie: the dictionary order a person reading a
+     * report expects, ignoring case first.
      *
      * <p>Check names are camelCase identifiers of ASCII letters and digits: {@code sampling}, {@code
-     * skewAgreement}, {@code grayBalance}, or a site's own such as {@code always4}. {@code
-     * localeCompare} collates those case-insensitively first, so {@code noise} sorts before {@code
-     * Sharpness} where {@link String#compareTo(String)} would put every capital before every lower
-     * case letter, and only then puts a lower case letter before its capital. For letters and digits
-     * that is exactly comparing the lower cased names and, when they are equal, putting the name
-     * whose first differing character is lower case first, which reverse code point order does
-     * because the two names then differ only in case. For the standard checks' names both orders
-     * agree with {@code compareTo}; this keeps a site's own names in the original order too.
+     * skewAgreement}, {@code grayBalance}, or a site's own such as {@code always4}. They are
+     * compared case-insensitively first, so {@code noise} sorts before {@code Sharpness} where
+     * {@link String#compareTo(String)} would put every capital before every lower case letter, and
+     * only then is a lower case letter put before its capital. For letters and digits that is
+     * exactly comparing the lower cased names and, when they are equal, putting the name whose
+     * first differing character is lower case first, which reverse code point order does because
+     * the two names then differ only in case. For the standard checks' names this order agrees with
+     * {@code compareTo}; it matters for a site's own names.
      */
     private static final Comparator<String> NAME_ORDER = Comparator.comparing(
                     (String name) -> name.toLowerCase(Locale.ROOT))

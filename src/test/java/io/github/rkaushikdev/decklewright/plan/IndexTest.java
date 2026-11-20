@@ -42,15 +42,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * The layer as the rest of the tree sees it. The original checked its barrel module; the Java layer
- * has no barrel, so this checks the public types of the two packages instead.
+ * The layer as the rest of the tree sees it, through the public types of its two packages.
  */
 class IndexTest {
 
     private static final ProfileRegistry REGISTRY = new ProfileRegistry();
     private static final CaptureOptions SIGMA_4 = CaptureOptions.defaults().withSigma(4);
 
-    /** Every public type of the layer that holds functions or constants, as the barrel exported them. */
+    /** Every public type of the layer that holds functions or constants. */
     private static final List<Class<?>> LAYER = List.of(
             CropPlan.class,
             Engine.class,
@@ -103,7 +102,7 @@ class IndexTest {
     }
 
     @Nested
-    class TheBarrel {
+    class ThePublicTypes {
         @Test
         void exportsTheOneCallThePipelineMakes() {
             assertThat(exportsFunction("planCrop")).isTrue();
@@ -125,7 +124,7 @@ class IndexTest {
         }
 
         @Test
-        void exportsNoUndefinedBindings() throws IllegalAccessException {
+        void holdsNoNullConstants() throws IllegalAccessException {
             for (Class<?> type : Stream.concat(LAYER.stream(), TYPES.stream()).toList()) {
                 assertThat(Modifier.isPublic(type.getModifiers()))
                         .as(type.getSimpleName())

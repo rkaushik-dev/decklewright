@@ -197,8 +197,8 @@ public final class Schema {
      *
      * <p>An edge a bag leaves out is zero millimetres. A value that is neither shape, or a bag naming
      * something that is not an edge, is refused with the path; a length that will not read surfaces
-     * with the length's own {@link io.github.rkaushikdev.decklewright.BadArgumentError} instead, as it
-     * always has.
+     * with the length's own {@link io.github.rkaushikdev.decklewright.BadArgumentError} instead,
+     * whose message says what is wrong with the length itself.
      */
     public static Field edges(FieldOptions options) {
         return field(
@@ -331,7 +331,7 @@ public final class Schema {
         return bag.containsKey(side) ? Length.toLength(bag.get(side)) : Length.zero();
     }
 
-    /** The cause the way the original wrote an error into a message: its name, then its message. */
+    /** The cause as a message quotes an error: its name, then its message. */
     private static Map<String, Object> causeOf(DeckleError cause) {
         return Map.of("cause", cause.name() + ": " + cause.getMessage());
     }

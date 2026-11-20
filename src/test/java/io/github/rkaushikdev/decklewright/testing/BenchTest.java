@@ -18,8 +18,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * The fixture against figures worked out independently from the original's arithmetic: IEEE double
- * products for the noise generator and the original's buffer offsets for a fractional paint.
+ * The fixture against figures worked out independently: IEEE 754 double products for the noise
+ * generator, and the buffer offsets a fractional paint writes at.
  */
 class BenchTest {
 
@@ -67,7 +67,7 @@ class BenchTest {
     @Nested
     class TheNoise {
         @Test
-        void stepsTheGeneratorInDoublesAsTheOriginalDid() {
+        void stepsTheGeneratorInDoubleArithmetic() {
             int seed = Bench.SEED;
             int[] steps = new int[6];
             for (int i = 0; i < steps.length; i += 1) {
@@ -90,7 +90,7 @@ class BenchTest {
         }
 
         @Test
-        void matchesTheOriginalOnATurnedNoisySheet() {
+        void matchesKnownPixelsOnATurnedNoisySheet() {
             Surface s = bench(Bench.Options.defaults().withDegrees(-8).withNoise(9));
             assertThat(Arrays.copyOf(s.row(0).toArray(), 8)).containsExactly(47, 47, 30, 46, 34, 36, 40, 31);
             assertThat(sum(s)).isEqualTo(3137521);
@@ -184,7 +184,7 @@ class BenchTest {
         }
 
         @Test
-        void writesAFractionalBlockAtTheOffsetsTheOriginalWorkedOut() {
+        void writesAFractionalBlockAtItsComputedSampleOffsets() {
             // Rows 0.5 and 1.5 of a four wide capture start at offsets 2 and 6, so columns 1 and 2
             // land on offsets 3, 4, 7 and 8, which are pixels in rows zero, one and two.
             Surface s = Surface.create(4, 4, Layout.GRAY);

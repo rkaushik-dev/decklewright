@@ -58,7 +58,8 @@ public final class Polygon implements JsonValue {
             throw new GeometryError("a hull needs at least three points", Map.of("count", list.size()));
         }
         List<Point> sorted = new ArrayList<>(list);
-        // Compared by the sign of each difference, so minus zero and zero tie, as they always have.
+        // Compared by the sign of each difference, so minus zero and zero tie where Double.compare
+        // would order them.
         sorted.sort((a, b) -> {
             int byX = (int) Math.signum(a.x() - b.x());
             return byX != 0 ? byX : (int) Math.signum(a.y() - b.y());

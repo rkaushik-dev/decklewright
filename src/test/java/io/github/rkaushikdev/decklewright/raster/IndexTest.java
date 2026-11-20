@@ -26,8 +26,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * The layer as the rest of the tree sees it. The original checked its barrel module; the Java layer
- * has no barrel, so this checks the public types of the two packages instead.
+ * The layer as the rest of the tree sees it, through the public types of its two packages.
  */
 class IndexTest {
 
@@ -71,7 +70,7 @@ class IndexTest {
     }
 
     @Nested
-    class TheBarrel {
+    class ThePublicTypes {
         @Test
         void exportsTheTwoRegionClassesAndTheirBase() {
             for (Class<?> type : List.of(Surface.class, SurfaceView.class, Raster.class)) {
@@ -109,7 +108,7 @@ class IndexTest {
         }
 
         @Test
-        void exportsNoUndefinedBindings() throws IllegalAccessException {
+        void holdsNoNullConstants() throws IllegalAccessException {
             for (Class<?> type : Stream.concat(
                             LAYER.stream(),
                             Stream.of(PadMode.class, PadOptions.class, ResampleOptions.class, RotateOptions.class))

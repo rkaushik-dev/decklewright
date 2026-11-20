@@ -174,7 +174,7 @@ public final class Captures {
                 && !reading.sheet().touchesEdge();
     }
 
-    /** A rule length counts only when it is there and is neither zero nor not a number, as it always has. */
+    /** A rule length counts only when it is there and is neither zero nor not a number. */
     private static boolean isGiven(OptionalDouble length) {
         return length.isPresent() && length.getAsDouble() != 0 && !Double.isNaN(length.getAsDouble());
     }

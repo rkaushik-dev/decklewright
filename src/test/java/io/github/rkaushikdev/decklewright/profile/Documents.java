@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Written documents for the tests, built the way the original wrote object literals.
+ * Written documents for the tests, built inline from keys and values in turn.
  *
  * <p>What these build is what {@link io.github.rkaushikdev.decklewright.util.Json#parse(String)}
  * gives: a mutable map in key order and a mutable list, either of which may hold null. Numbers are

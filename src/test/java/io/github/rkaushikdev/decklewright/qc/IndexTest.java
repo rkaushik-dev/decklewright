@@ -38,8 +38,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Quality control as the rest of the tree sees it. The original checked its barrel module; the
- * Java layer has no barrel, so the barrel checks look at the public types of the two packages.
+ * Quality control as the rest of the tree sees it, through the public types of its two packages.
  */
 class IndexTest {
 
@@ -136,7 +135,7 @@ class IndexTest {
     }
 
     @Nested
-    class TheBarrel {
+    class ThePublicTypes {
         @Test
         void exportsTheOneCallAStageMakes() {
             assertThat(function("gradeCapture")).isPresent();
@@ -201,7 +200,7 @@ class IndexTest {
             assertThat(out.result().findings()).hasSize(8);
             assertThat(out.result().passed()).isTrue();
             assertThat(out.advice()).isEqualTo(List.of());
-            // the run's own fields with the advice after them, as the original spread them
+            // the run's own fields first, in their own order, with the advice after them
             assertThat(out.stars()).isEqualTo(out.result().stars());
             assertThat(out.toJson().keySet())
                     .containsExactly("findings", "stars", "worst", "missing", "passed", "wanted", "advice");

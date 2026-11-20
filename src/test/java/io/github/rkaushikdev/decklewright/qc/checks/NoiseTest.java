@@ -38,8 +38,8 @@ class NoiseTest {
     /**
      * A wedge with a given tone per patch and a chosen amount of noise on it.
      *
-     * <p>The noise is the original's seeded generator, multiplied in doubles before the mask exactly
-     * as it was, so every sample matches.
+     * <p>The noise comes from a seeded generator whose product is taken in doubles before the mask,
+     * so every sample is fixed and the expected readings can be exact.
      *
      * @param noise plus or minus this much on every sample
      */

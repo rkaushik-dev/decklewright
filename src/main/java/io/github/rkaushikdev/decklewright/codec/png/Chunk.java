@@ -13,8 +13,8 @@ import java.util.OptionalLong;
  * <p>A chunk is either read out of a file by {@link Chunks#splitChunks(byte[])}, in which case it
  * also knows where it started and the check value it carried, or made here to be written, with
  * {@link #of(String, byte[])} or one of the builders. A read chunk is a window onto the file's bytes
- * rather than a copy of them, as it always was, so splitting a four hundred megabyte master costs
- * nothing; {@link #data()} always hands out a copy, so nothing can write back through a chunk.
+ * rather than a copy of them, so splitting a four hundred megabyte master costs nothing; {@link
+ * #data()} always hands out a copy, so nothing can write back through a chunk.
  *
  * <p>Two chunks are equal when their type, data, offset and check value all are.
  */

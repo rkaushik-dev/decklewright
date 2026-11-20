@@ -121,7 +121,7 @@ class LayoutTest {
         }
 
         @Test
-        void picksTheMatchingTypedArray() {
+        void picksTheMatchingSampleStorage() {
             assertThat(Layouts.arrayTypeFor(8)).isEqualTo(Uint8Samples.class);
             assertThat(Layouts.arrayTypeFor(16)).isEqualTo(Uint16Samples.class);
         }

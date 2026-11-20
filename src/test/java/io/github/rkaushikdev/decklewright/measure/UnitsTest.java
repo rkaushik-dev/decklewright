@@ -95,7 +95,7 @@ class UnitsTest {
 
         @Test
         void refusesAValueThatIsNotANumber() {
-            // Java's types will not take the string '17', so not-a-number stands in for it.
+            // The value is a double, so not-a-number is the value that is not a number.
             assertThatThrownBy(() -> convert(Double.NaN, INCH, MILLIMETRE))
                     .isInstanceOf(BadArgumentError.class)
                     .hasMessageFindingMatch("value must be a finite number");

@@ -12,13 +12,14 @@ import java.util.StringJoiner;
  * {@code short} in {@link Uint16Samples}, so a sixteen bit master costs two bytes a sample and a
  * derivative one, which is what a sheet of a few hundred megapixels can afford.
  *
- * <p>Storing behaves exactly as storing into a typed array of the same depth always has: a whole
- * number keeps only its low bits, so three hundred stored at eight bits reads back as forty four,
- * and a fractional value is first truncated toward zero. Not a number and the infinities store
- * zero.
+ * <p>A store truncates toward zero and then keeps only the bits the depth holds, which wraps the
+ * value modulo two to the depth: three hundred stored at eight bits reads back as forty four, and
+ * minus one as two hundred and fifty five. Not a number and the infinities store zero. A store
+ * never saturates and never refuses a value.
  *
  * <p>{@link #subarray(int, int)} is a view that shares the samples; {@link #slice()} copies them.
- * Unlike a typed array, reading or writing outside the run throws rather than doing nothing.
+ * Reading or writing outside the run throws rather than being ignored, so an indexing mistake fails
+ * where it is made.
  */
 public abstract sealed class Samples permits Uint8Samples, Uint16Samples {
     /** How many samples {@link #toString()} writes out before it stops. */
@@ -77,8 +78,8 @@ public abstract sealed class Samples permits Uint8Samples, Uint16Samples {
     public abstract void set(int index, int value);
 
     /**
-     * Stores a number the way a typed array does: truncated toward zero, then reduced to the bits
-     * the depth holds; not a number and the infinities store zero.
+     * Stores a number truncated toward zero, then reduced to the bits the depth holds; not a number
+     * and the infinities store zero.
      *
      * @throws IndexOutOfBoundsException when the index is outside the run
      */

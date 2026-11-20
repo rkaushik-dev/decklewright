@@ -271,8 +271,9 @@ class SchemaTest {
         }
 
         @Test
-        void treatsAnExplicitUndefinedAsAbsent() {
-            // Java has no undefined; an entry holding an empty Optional is the value that is not there.
+        void treatsAnEmptyOptionalAsAbsent() {
+            // An entry holding an empty Optional is a value that is not there, so the fallback
+            // is read.
             assertThat(readGroup(fields, bag("name", "atlas", "ppi", Optional.empty()))
                             .get("ppi"))
                     .isEqualTo(400.0);

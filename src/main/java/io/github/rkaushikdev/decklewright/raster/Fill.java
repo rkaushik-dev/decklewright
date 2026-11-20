@@ -52,7 +52,7 @@ public sealed interface Fill {
     /**
      * One value for every channel.
      *
-     * @param value a sample value; stored as a typed array stores it
+     * @param value a sample value; stored as {@link Samples#set(int, double)} stores it
      */
     record Uniform(double value) implements Fill {
         @Override

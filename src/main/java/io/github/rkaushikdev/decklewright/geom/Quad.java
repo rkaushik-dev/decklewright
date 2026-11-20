@@ -56,8 +56,8 @@ public final class Quad implements JsonValue {
         List<Point> list = fourCorners(corners);
         Point middle = Point.centroid(list);
         List<Point> sorted = new ArrayList<>(list);
-        // Compared by the sign of the difference, so bearings of minus zero and zero tie, as they
-        // always have.
+        // Compared by the sign of the difference, so bearings of minus zero and zero tie where
+        // Double.compare would order them.
         sorted.sort((p, q) -> (int) Math.signum(bearing(p, middle) - bearing(q, middle)));
         int start = 0;
         double best = Double.POSITIVE_INFINITY;

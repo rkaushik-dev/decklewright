@@ -11,9 +11,8 @@ import java.util.List;
 /**
  * What the check tests build their hand-made contexts from.
  *
- * <p>The original tests handed each check a limits object holding only the one limit it reads. A
- * {@link QcLimits} holds them all, so these start from one set of figures and change the limit a
- * test is about; no check reads another's limit, so the rest cannot move a result.
+ * <p>A {@link QcLimits} holds every limit, so these start from one set of figures and change the
+ * limit a test is about; no check reads another's limit, so the rest cannot move a result.
  */
 final class TestContexts {
     /** The house figures, at the 600 ppi the sampling tests are written against. */

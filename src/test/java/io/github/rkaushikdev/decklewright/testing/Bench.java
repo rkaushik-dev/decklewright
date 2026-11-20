@@ -18,8 +18,8 @@ import java.util.OptionalDouble;
  * bed noise, plus {@link #paint} for the extras: a colour target block and a scale bar. Every
  * detection test builds its input from here so the inputs are comparable across the suite.
  *
- * <p>The pixels match the original fixture exactly, seeded noise included, so a test ported from it
- * sees the same capture its expectations were written against.
+ * <p>The pixels are fixed exactly, seeded noise included, so every test sees the same capture its
+ * expectations were written against.
  */
 public final class Bench {
     /** Where the bed noise sequence starts. */
@@ -88,11 +88,11 @@ public final class Bench {
      * Paints a filled block onto a capture, which is how the tests add a colour target or a scale
      * bar to a bench.
      *
-     * <p>The block is walked a pixel at a time from its top left corner, clipped to the capture,
-     * exactly as the original did. When that corner is not a whole pixel the original wrote each
-     * sample at the buffer offset its position worked out to, and only where that offset was a
-     * whole number inside the buffer, so a block can paint nothing, or land shifted. That is kept,
-     * because the step wedges in the target tests are cut that way.
+     * <p>The block is walked a pixel at a time from its top left corner, clipped to the capture.
+     * When that corner is not a whole pixel each sample is written at the buffer offset its
+     * position works out to, and only where that offset is a whole number inside the buffer, so a
+     * block can paint nothing, or land shifted. The step wedges in the target tests are cut that
+     * way, so their expectations depend on it.
      *
      * @return the same surface, painted
      * @throws BadArgumentError when a per channel fill does not have one value per channel and the
@@ -113,18 +113,18 @@ public final class Bench {
     }
 
     /**
-     * One step of the bed noise generator. The original multiplied in doubles, which round once the
-     * product passes two to the fifty third, before masking to thirty one bits; this does the same
-     * so the noise matches sample for sample.
+     * One step of the bed noise generator. The product is taken in doubles, which round once it
+     * passes two to the fifty third, before masking to thirty one bits, so the noise is fixed
+     * sample for sample by that rounding.
      */
     static int nextSeed(int seed) {
         return (int) (long) (seed * 1103515245.0 + 12345.0) & 0x7fffffff;
     }
 
     /**
-     * What the original's per sample write did for a position that is not a whole pixel: the sample
-     * offset {@code (y * width + x) * channels + channel} is worked out in doubles, and a write lands
-     * only where it comes out a whole number inside the buffer.
+     * The per sample write for a position that is not a whole pixel: the sample offset {@code (y *
+     * width + x) * channels + channel} is worked out in doubles, and a write lands only where it
+     * comes out a whole number inside the buffer.
      */
     private static void setAtFractionalPosition(Surface surface, double x, double y, double[] values) {
         int channels = surface.channels();

@@ -66,7 +66,7 @@ class JsonTest {
         }
 
         @Test
-        void escapesTheWayTheLabsFilesAlwaysHave() {
+        void escapesQuotesBackslashesControlsAndLoneSurrogates() {
             assertThat(Json.quote("a\"b\\c\n\t\r\b\f\u0001/é")).isEqualTo("\"a\\\"b\\\\c\\n\\t\\r\\b\\f\\u0001/é\"");
             assertThat(Json.quote("\ud800")).isEqualTo("\"\\ud800\"");
             assertThat(Json.quote("\udc00x")).isEqualTo("\"\\udc00x\"");

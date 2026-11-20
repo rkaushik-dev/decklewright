@@ -171,8 +171,8 @@ class KernelsTest {
             assertThatThrownBy(() -> buildContributions(0, 4, BOX))
                     .isInstanceOf(BadArgumentError.class)
                     .hasMessageFindingMatch("sourceExtent");
-            // A fractional extent cannot be written against an int parameter; a negative one is the
-            // nearest bad extent Java can pass, and it is refused by the same rule.
+            // The extents are ints, so a fractional one cannot be passed; a negative one is refused
+            // by the same rule.
             assertThatThrownBy(() -> buildContributions(4, -1, BOX))
                     .isInstanceOf(BadArgumentError.class)
                     .hasMessageFindingMatch("targetExtent");

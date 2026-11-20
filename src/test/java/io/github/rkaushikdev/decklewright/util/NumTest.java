@@ -162,7 +162,7 @@ class NumTest {
         }
     }
 
-    /** Not in the original suite: {@link Num#hypot(double, double)} was added for the port. */
+    /** Covers the vector length helper, {@link Num#hypot(double, double)}. */
     @Nested
     class Hypot {
         @Test
@@ -183,7 +183,7 @@ class NumTest {
         }
     }
 
-    /** Not in the original suite: {@link Num#roundHalfUp(double)} was added for the port. */
+    /** Covers the half-up rounding helper, {@link Num#roundHalfUp(double)}. */
     @Nested
     class RoundHalfUp {
         @Test

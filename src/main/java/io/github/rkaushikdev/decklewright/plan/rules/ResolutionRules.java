@@ -129,7 +129,7 @@ public final class ResolutionRules {
         return Math.min(plan.sampling().x(), plan.sampling().y());
     }
 
-    /** To one place, halves up, the way the messages have always quoted a figure. */
+    /** To one place, halves up, which is how the messages quote a figure. */
     private static double tenths(double value) {
         return Num.roundHalfUp(value * 10) / 10;
     }

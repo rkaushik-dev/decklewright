@@ -70,8 +70,8 @@ public final class Num {
     }
 
     /**
-     * The nearest whole number with halves going towards positive infinity, which is how the lab
-     * has always rounded when it did not ask for {@link #roundHalfEven(double)}.
+     * The nearest whole number with halves going towards positive infinity, for the figures that
+     * are not rounded with {@link #roundHalfEven(double)}.
      *
      * <p>Unlike {@link Math#round(double)} this stays a double and keeps the sign of a zero, so
      * minus a quarter rounds to minus zero, and a value too large to have a fraction comes back
@@ -197,9 +197,9 @@ public final class Num {
     }
 
     /**
-     * The length of the vector {@code (x, y)}, worked the way the lab's figures always have been:
-     * both magnitudes are divided by the larger one, the squares are summed, and the root is scaled
-     * back up. Dividing first keeps the squares from overflowing.
+     * The length of the vector {@code (x, y)}, scaled by the larger magnitude before the squares
+     * are summed: both magnitudes are divided by the larger one, the squares are summed, and the
+     * root is scaled back up. Dividing first keeps the squares from overflowing.
      *
      * <p>{@link StrictMath#hypot(double, double)} rounds differently in the last place for about a
      * third of ordinary inputs, and edge lengths and corner shifts are compared exactly, so nothing

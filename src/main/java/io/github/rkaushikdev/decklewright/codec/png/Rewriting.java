@@ -184,10 +184,10 @@ public final class Rewriting {
     }
 
     /**
-     * The instant the fields name, read leniently, as the lab's files have always been read: a year
-     * below a hundred is nineteen hundred and that, and a field outside its range carries into the
-     * one above it, so a month of thirteen is January of the next year. A damaged chunk therefore
-     * reads back as the same instant it always has.
+     * The instant the fields name, read leniently: a year below a hundred is nineteen hundred and
+     * that, and a field outside its range carries into the one above it, so a month of thirteen is
+     * January of the next year. A damaged chunk therefore reads back as a definite instant, the
+     * same one every time, rather than failing.
      */
     private static Instant utc(int year, int month, int day, int hour, int minute, int second) {
         int fullYear = year <= 99 ? 1900 + year : year;
