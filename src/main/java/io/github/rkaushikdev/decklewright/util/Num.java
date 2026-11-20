@@ -69,6 +69,21 @@ public final class Num {
         return floor % 2 == 0 ? floor : floor + 1;
     }
 
+    /**
+     * The nearest whole number with halves going towards positive infinity, which is how the lab
+     * has always rounded when it did not ask for {@link #roundHalfEven(double)}.
+     *
+     * <p>Unlike {@link Math#round(double)} this stays a double and keeps the sign of a zero, so
+     * minus a quarter rounds to minus zero, and a value too large to have a fraction comes back
+     * unchanged rather than clamped to the range of a long. Not a number stays not a number.
+     */
+    public static double roundHalfUp(double value) {
+        if (!(Math.abs(value) < 0x1p52)) {
+            return value;
+        }
+        return Math.copySign((double) Math.round(value), value);
+    }
+
     /** The nearest multiple of {@code step}, halves to the even multiple. */
     public static double roundToMultiple(double value, double step) {
         Guards.requirePositive(step, "step");
@@ -179,6 +194,36 @@ public final class Num {
     /** As {@link #stdDev(double...)}. */
     public static double stdDev(Collection<? extends Number> values) {
         return stdDev(unbox(values));
+    }
+
+    /**
+     * The length of the vector {@code (x, y)}, worked the way the lab's figures always have been:
+     * both magnitudes are divided by the larger one, the squares are summed, and the root is scaled
+     * back up. Dividing first keeps the squares from overflowing.
+     *
+     * <p>{@link StrictMath#hypot(double, double)} rounds differently in the last place for about a
+     * third of ordinary inputs, and edge lengths and corner shifts are compared exactly, so nothing
+     * in the tree uses it.
+     *
+     * @return positive infinity when either is infinite, otherwise not a number when either is not
+     *     a number, otherwise the length, which is never negative
+     */
+    public static double hypot(double x, double y) {
+        if (Double.isInfinite(x) || Double.isInfinite(y)) {
+            return Double.POSITIVE_INFINITY;
+        }
+        if (Double.isNaN(x) || Double.isNaN(y)) {
+            return Double.NaN;
+        }
+        double ax = Math.abs(x);
+        double ay = Math.abs(y);
+        double max = Math.max(ax, ay);
+        if (max == 0) {
+            return 0;
+        }
+        double nx = ax / max;
+        double ny = ay / max;
+        return Math.sqrt(nx * nx + ny * ny) * max;
     }
 
     /** The greatest common divisor of the whole parts of the two magnitudes. */

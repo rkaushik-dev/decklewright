@@ -5,6 +5,7 @@ import static io.github.rkaushikdev.decklewright.util.Num.ceilToMultiple;
 import static io.github.rkaushikdev.decklewright.util.Num.clamp;
 import static io.github.rkaushikdev.decklewright.util.Num.floorToMultiple;
 import static io.github.rkaushikdev.decklewright.util.Num.gcd;
+import static io.github.rkaushikdev.decklewright.util.Num.hypot;
 import static io.github.rkaushikdev.decklewright.util.Num.isEven;
 import static io.github.rkaushikdev.decklewright.util.Num.lerp;
 import static io.github.rkaushikdev.decklewright.util.Num.mean;
@@ -158,6 +159,48 @@ class NumTest {
             assertThat(median()).isNaN();
             assertThat(stdDev()).isNaN();
             assertThat(sum()).isEqualTo(0);
+        }
+    }
+
+    /** Not in the original suite: {@link Num#hypot(double, double)} was added for the port. */
+    @Nested
+    class Hypot {
+        @Test
+        void measuresTheLengthOfAVectorWithoutOverflowing() {
+            assertThat(hypot(3, 4)).isEqualTo(5);
+            assertThat(hypot(-3, 4)).isEqualTo(5);
+            assertThat(hypot(0, -7)).isEqualTo(7);
+            assertThat(hypot(0, 0)).isEqualTo(0);
+            assertThat(hypot(3 * 0x1p600, 4 * 0x1p600)).isEqualTo(5 * 0x1p600);
+            assertThat(hypot(Double.NaN, Double.POSITIVE_INFINITY)).isEqualTo(Double.POSITIVE_INFINITY);
+            assertThat(hypot(Double.NaN, 1)).isNaN();
+        }
+
+        @Test
+        void roundsAsTheScaledSumDoesRatherThanAsStrictMath() {
+            assertThat(hypot(1, 5)).isEqualTo(5.099019513592785);
+            assertThat(StrictMath.hypot(1, 5)).isEqualTo(5.0990195135927845);
+        }
+    }
+
+    /** Not in the original suite: {@link Num#roundHalfUp(double)} was added for the port. */
+    @Nested
+    class RoundHalfUp {
+        @Test
+        void sendsHalvesTowardsPositiveInfinity() {
+            assertThat(Num.roundHalfUp(2.5)).isEqualTo(3);
+            assertThat(Num.roundHalfUp(-2.5)).isEqualTo(-2);
+            assertThat(Num.roundHalfUp(-2.6)).isEqualTo(-3);
+            assertThat(Num.roundHalfUp(0.49999999999999994)).isEqualTo(0);
+        }
+
+        @Test
+        void keepsTheSignOfAZeroAndLeavesHugeValuesAlone() {
+            assertThat(Double.compare(Num.roundHalfUp(-0.25), -0.0)).isZero();
+            assertThat(Double.compare(Num.roundHalfUp(0.25), 0.0)).isZero();
+            assertThat(Num.roundHalfUp(1e300)).isEqualTo(1e300);
+            assertThat(Num.roundHalfUp(Double.NaN)).isNaN();
+            assertThat(Num.roundHalfUp(Double.NEGATIVE_INFINITY)).isEqualTo(Double.NEGATIVE_INFINITY);
         }
     }
 
