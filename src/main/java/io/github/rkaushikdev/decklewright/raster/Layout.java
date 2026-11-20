@@ -13,7 +13,7 @@ import java.util.Map;
  *
  * <p>The lab captures three channel colour at sixteen bits for masters and hands out eight bit
  * derivatives. Grayscale turns up in the mask and profile work and in the odd microfilm scan. Alpha
- * only exists so a rotated master can mark the corners that fell outside the original capture.
+ * only exists so a rotated master can mark the corners that fell outside the capture it was cut from.
  *
  * @see Layouts
  */

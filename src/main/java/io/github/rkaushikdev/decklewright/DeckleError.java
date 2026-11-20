@@ -69,7 +69,7 @@ public class DeckleError extends RuntimeException {
     }
 
     /**
-     * Attach more context without losing the original stack.
+     * Attach more context without losing the stack trace of where this error was thrown.
      *
      * @param extra keys to add or overwrite
      * @return this same error, so the call can be thrown directly
@@ -112,8 +112,8 @@ public class DeckleError extends RuntimeException {
      *
      * <p>An error that is already ours is annotated with the message as its {@code context} and
      * handed back as it is, rather than nested. Anything else becomes a new error whose message is
-     * the given one followed by the cause's own message, and whose cause is the original when it
-     * is a {@link Throwable}.
+     * the given one followed by the cause's own message, and whose cause is the caught value when
+     * it is a {@link Throwable}.
      *
      * @param cause what was caught; usually a {@link Throwable}, but any value is described
      * @param message what was being attempted, such as {@code reading q17.png}
