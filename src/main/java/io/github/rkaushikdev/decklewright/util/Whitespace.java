@@ -1,17 +1,17 @@
-package io.github.rkaushikdev.decklewright.measure;
+package io.github.rkaushikdev.decklewright.util;
 
 import java.util.Locale;
 
 /**
  * The blank space around a figure a curator typed.
  *
- * <p>Lengths and tolerances are typed into profiles or pasted from work orders and spreadsheets,
+ * <p>Lengths, tolerances and profile values are typed into profiles or pasted from work orders and spreadsheets,
  * which bring non-breaking and other Unicode spaces with them. The readers skip exactly the
  * characters ECMAScript counts as white space or a line terminator, which is the set the profiles
  * have always been read with. {@link String#trim()}, {@link String#strip()} and the regex {@code \s}
  * each skip a different set, so nothing here uses them.
  */
-final class Whitespace {
+public final class Whitespace {
     /**
      * Every blank character, once each: tab, line feed, vertical tab, form feed, carriage return and
      * space, then the no-break space, the ogham space mark, the en quad through the hair space, the
@@ -24,12 +24,12 @@ final class Whitespace {
     };
 
     /** A regular expression character class matching one blank character. */
-    static final String CLASS = characterClass();
+    public static final String CLASS = characterClass();
 
     private Whitespace() {}
 
     /** True when the character is blank space. */
-    static boolean isBlank(char c) {
+    public static boolean isBlank(char c) {
         for (char blank : BLANKS) {
             if (blank == c) {
                 return true;
@@ -39,7 +39,7 @@ final class Whitespace {
     }
 
     /** The text without the blank space at either end. */
-    static String trim(String text) {
+    public static String trim(String text) {
         int start = 0;
         int end = text.length();
         while (start < end && isBlank(text.charAt(start))) {

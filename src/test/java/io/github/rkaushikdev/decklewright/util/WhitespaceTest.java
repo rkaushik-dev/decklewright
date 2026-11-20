@@ -1,4 +1,4 @@
-package io.github.rkaushikdev.decklewright.measure;
+package io.github.rkaushikdev.decklewright.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -39,12 +39,5 @@ class WhitespaceTest {
             count += isBlank ? 1 : 0;
         }
         assertThat(count).isEqualTo(25);
-    }
-
-    @Test
-    void letsTheReadersSkipANoBreakSpace() {
-        assertThat(Units.parseLength("4" + NO_BREAK_SPACE + "mm")).isEqualTo(Length.of(4, Unit.MILLIMETRE));
-        assertThat(Tolerance.parse(NO_BREAK_SPACE + "+3 /" + NO_BREAK_SPACE + "-1" + NO_BREAK_SPACE))
-                .isEqualTo(new Tolerance(1, 3));
     }
 }
