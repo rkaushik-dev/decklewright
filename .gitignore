@@ -1,8 +1,24 @@
+# Java build output
+target/
+build/
+.gradle/
+out/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# JavaScript tooling, until the original sources are removed
 node_modules/
 coverage/
 .vitest/
+
+# Local runs
 work/
-out/
 *.log
 *.local
 .DS_Store

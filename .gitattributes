@@ -1,5 +1,10 @@
-* text=auto eol=lf
+* text=auto
+mvnw text eol=lf
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
 *.pgm -text
 *.ppm -text
 *.png -text
 *.tif -text
+*.jar binary
