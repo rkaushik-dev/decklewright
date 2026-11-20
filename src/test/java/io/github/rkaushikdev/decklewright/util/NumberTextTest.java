@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class NumberTextTest {
 
@@ -94,6 +95,67 @@ class NumberTextTest {
         void refusesAPlaceCountOutOfRange() {
             assertThatThrownBy(() -> NumberText.fixed(1, -1)).isInstanceOf(IllegalArgumentException.class);
             assertThatThrownBy(() -> NumberText.fixed(1, 101)).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Nested
+    class Parse {
+        @ParameterizedTest(name = "\"{0}\" reads as {1}")
+        @CsvSource(
+                delimiter = '|',
+                value = {
+                    "42|42",
+                    "-3.5|-3.5",
+                    "+7|7",
+                    ".5|0.5",
+                    "5.|5",
+                    "5.e3|5000",
+                    "1e-7|1e-7",
+                    "1E3|1000",
+                    "0x1f|31",
+                    "0X1F|31",
+                    "0o17|15",
+                    "0b101|5",
+                    "  12  |12",
+                    "007|7",
+                    "Infinity|Infinity",
+                    "-Infinity|-Infinity",
+                    "+Infinity|Infinity"
+                })
+        void readsWhatTheLabsToolsHaveAlwaysRead(String text, String expected) {
+            assertThat(NumberText.of(NumberText.parse(text))).isEqualTo(expected);
+        }
+
+        @ParameterizedTest(name = "\"{0}\" is not a number")
+        @ValueSource(
+                strings = {
+                    "4mm",
+                    "1.2.3",
+                    ".",
+                    "+",
+                    "e5",
+                    "1e",
+                    "1_000",
+                    "-0x10",
+                    "0x",
+                    "0b2",
+                    "0o9",
+                    "NaN",
+                    "1d",
+                    "0x1p3",
+                    "infinity",
+                    "1,5"
+                })
+        void refusesWhatSpellsNoNumber(String text) {
+            assertThat(NumberText.parse(text)).isNaN();
+        }
+
+        @Test
+        void readsBlankTextAsZeroAndSkipsTheBlanksAPasteBrings() {
+            assertThat(NumberText.parse("")).isZero();
+            assertThat(NumberText.parse(" \t\n")).isZero();
+            assertThat(NumberText.parse((char) 0xA0 + "400" + (char) 0x3000)).isEqualTo(400);
+            assertThat(NumberText.parse((char) 0x85 + "400")).isNaN();
         }
     }
 }

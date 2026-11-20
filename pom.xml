@@ -107,6 +107,7 @@
           <release>${java.version}</release>
           <compilerArgs>
             <arg>-Xlint:all</arg>
+            <arg>-Xlint:-processing</arg>
           </compilerArgs>
         </configuration>
         <executions>

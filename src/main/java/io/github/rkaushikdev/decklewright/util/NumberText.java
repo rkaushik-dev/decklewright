@@ -1,8 +1,11 @@
 package io.github.rkaushikdev.decklewright.util;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Numbers written the way the lab's reports have always written them.
@@ -15,9 +18,15 @@ import java.math.RoundingMode;
  * uses it for output.
  *
  * <p>{@link #fixed(double, int)} rounds the exact binary value half away from zero, which is what
- * a fixed-point figure in the reports has always meant.
+ * a fixed-point figure in the reports has always meant, and {@link #parse(String)} reads a typed
+ * figure back the way the lab's tools always have.
  */
 public final class NumberText {
+    private static final Pattern DECIMAL_TEXT =
+            Pattern.compile("[+-]?(?:[0-9]+\\.?[0-9]*|\\.[0-9]+)(?:[eE][+-]?[0-9]+)?");
+    private static final Pattern INFINITY_TEXT = Pattern.compile("([+-]?)Infinity");
+    private static final Pattern RADIX_TEXT = Pattern.compile("0([xXoObB])([0-9a-fA-F]+)");
+
     private NumberText() {}
 
     /**
@@ -102,6 +111,45 @@ public final class NumberText {
         String sign = value < 0 ? "-" : "";
         BigDecimal rounded = new BigDecimal(Math.abs(value)).setScale(digits, RoundingMode.HALF_UP);
         return sign + rounded.toPlainString();
+    }
+
+    /**
+     * The number a piece of text spells, read the way the lab's tools have always read a typed
+     * figure, or not a number when it spells none.
+     *
+     * <p>Blank space at either end is ignored ({@link Whitespace#trim(String)}), and blank text is
+     * zero. A decimal may carry a sign, may start or end with its point ({@code .5}, {@code 5.}),
+     * and may have an exponent; {@code Infinity} with an optional sign is infinite. Hexadecimal,
+     * octal and binary integers are written {@code 0x1f}, {@code 0o17} and {@code 0b101}, with no
+     * sign. Anything else, including digit separators, a trailing unit, {@code NaN} or Java's
+     * {@code 1d}, is not a number.
+     */
+    public static double parse(String text) {
+        String trimmed = Whitespace.trim(text);
+        if (trimmed.isEmpty()) {
+            return 0;
+        }
+        if (DECIMAL_TEXT.matcher(trimmed).matches()) {
+            return Double.parseDouble(trimmed);
+        }
+        Matcher infinity = INFINITY_TEXT.matcher(trimmed);
+        if (infinity.matches()) {
+            return "-".equals(infinity.group(1)) ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+        }
+        Matcher radix = RADIX_TEXT.matcher(trimmed);
+        if (radix.matches()) {
+            int base =
+                    switch (Character.toLowerCase(radix.group(1).charAt(0))) {
+                        case 'x' -> 16;
+                        case 'o' -> 8;
+                        default -> 2;
+                    };
+            String digits = radix.group(2);
+            if (digits.chars().allMatch(ch -> Character.digit(ch, base) >= 0)) {
+                return new BigInteger(digits, base).doubleValue();
+            }
+        }
+        return Double.NaN;
     }
 
     /**

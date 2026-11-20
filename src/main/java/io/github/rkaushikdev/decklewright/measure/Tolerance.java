@@ -37,9 +37,6 @@ public record Tolerance(double minus, double plus, ToleranceKind kind) implement
     /** {@code 0.5}, {@code +2}, {@code -2} or {@code 5%}. */
     private static final Pattern ONE_FIGURE = Pattern.compile("([+-]?)([0-9.]+)(%?)");
 
-    /** A run of digits and points that spells a decimal, which {@code 1.2.3} does not. */
-    private static final Pattern DECIMAL = Pattern.compile("\\d+\\.?\\d*|\\.\\d+");
-
     /**
      * A band of the given sides and kind.
      *
@@ -259,7 +256,7 @@ public record Tolerance(double minus, double plus, ToleranceKind kind) implement
      * spells none, so that the band refuses it as not finite.
      */
     private static double decimal(String digits) {
-        return DECIMAL.matcher(digits).matches() ? Double.parseDouble(digits) : Double.NaN;
+        return NumberText.parse(digits);
     }
 
     /**
