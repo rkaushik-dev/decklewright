@@ -12,11 +12,6 @@ out/
 .project
 .settings/
 
-# JavaScript tooling, until the original sources are removed
-node_modules/
-coverage/
-.vitest/
-
 # Local runs
 work/
 *.log
