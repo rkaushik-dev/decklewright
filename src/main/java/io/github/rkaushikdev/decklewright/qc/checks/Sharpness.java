@@ -18,6 +18,8 @@ import io.github.rkaushikdev.decklewright.util.NumberText;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.ToDoubleFunction;
 
 /**
  * Sharpness, measured across the sheet edge.
@@ -41,6 +43,10 @@ public final class Sharpness {
     /** Overshoot past either end of an edge, as a share of the step, per star. */
     public static final List<Rung> HALO_LADDER =
             List.of(new Rung(4, 0.05), new Rung(3, 0.1), new Rung(2, 0.2), new Rung(1, 0.35));
+
+    /** How far apart the colour channels may put an edge, in pixels, per star. */
+    public static final List<Rung> REGISTRATION_LADDER =
+            List.of(new Rung(4, 0.33), new Rung(3, 0.5), new Rung(2, 0.8), new Rung(1, 1.2));
 
     /** The smallest strip, either way, that still has a step worth reading. */
     private static final double THINNEST = 3;
@@ -82,20 +88,76 @@ public final class Sharpness {
     }
 
     /**
+     * A strip of capture running across an edge, on the first channel.
+     *
+     * @see #edgeProfile(Surface, Rect, Axis, int)
+     */
+    public static Optional<double[]> edgeProfile(Surface surface, Rect strip, Axis across) {
+        return edgeProfile(surface, strip, across, 0);
+    }
+
+    /**
      * A strip of capture running across an edge, averaged along it so the noise comes out and the
      * step stays. The strip is clipped to the capture first.
      *
      * @param across the direction the step runs in, so the profile has one value per pixel that way
-     * @return the mean of the first channel at each pixel across the edge; empty when what is left
-     *     on the capture is thinner than three pixels either way
+     * @param channel the channel read
+     * @return the mean of the channel at each pixel across the edge; empty when what is left on the
+     *     capture is thinner than three pixels either way
      */
-    public static Optional<double[]> edgeProfile(Surface surface, Rect strip, Axis across) {
+    public static Optional<double[]> edgeProfile(Surface surface, Rect strip, Axis across, int channel) {
         Rect held = strip.intersect(surface.bounds());
         if (held.isEmpty() || held.width() < THINNEST || held.height() < THINNEST) {
             return Optional.empty();
         }
-        return Optional.of(
-                Stats.meanProfile(new SurfaceView(surface, held), across == Axis.X ? Along.COLUMN : Along.ROW));
+        return Optional.of(Stats.meanProfile(
+                new SurfaceView(surface, held), across == Axis.X ? Along.COLUMN : Along.ROW, channel));
+    }
+
+    /**
+     * Where the profile crosses halfway between its two ends, interpolated between samples, which is
+     * where a channel puts the edge.
+     *
+     * @return in samples from the start of the profile; not a number when there is no step
+     */
+    public static double edgePosition(double[] profile) {
+        if (!Double.isFinite(riseDistance(profile))) {
+            return Double.NaN;
+        }
+        double first = profile[0];
+        double last = profile[profile.length - 1];
+        return crossing(profile, (first + last) / 2, last > first);
+    }
+
+    /**
+     * How far apart the colour channels put each of the sheet's edges, in pixels: for every edge that
+     * gave a usable step on every colour channel, the distance between the earliest and the latest
+     * channel's {@linkplain #edgePosition position}.
+     *
+     * @param reach how far either side of each edge to look, in pixels
+     * @return one figure per usable edge, in strip order; empty for a grayscale capture
+     */
+    public static List<Double> channelShifts(Surface surface, Rect sheet, double reach) {
+        int colours = surface.layout().colourCount();
+        if (colours < 2) {
+            return List.of();
+        }
+        List<Double> out = new ArrayList<>();
+        for (EdgeStrip edge : edgeStrips(sheet, StripOptions.defaults().withReach(reach))) {
+            double early = Double.POSITIVE_INFINITY;
+            double late = Double.NEGATIVE_INFINITY;
+            for (int channel = 0; channel < colours; channel += 1) {
+                double at = edgeProfile(surface, edge.strip(), edge.across(), channel)
+                        .map(Sharpness::edgePosition)
+                        .orElse(Double.NaN);
+                early = Math.min(early, at);
+                late = Math.max(late, at);
+            }
+            if (Double.isFinite(early) && Double.isFinite(late)) {
+                out.add(late - early);
+            }
+        }
+        return List.copyOf(out);
     }
 
     /**
@@ -187,6 +249,30 @@ public final class Sharpness {
     /**
      * The check with strips reaching eight pixels either side of each edge.
      *
+     * @see #registrationCheck(double)
+     */
+    public static Check registrationCheck() {
+        return registrationCheck(StripOptions.defaults().reach());
+    }
+
+    /**
+     * How far apart the colour channels put the sheet's edges, at the worst edge. A lens with lateral
+     * colour, or a scanning back whose three passes do not land together, fringes every line on the
+     * sheet red on one side and blue on the other. The measurement is in pixels; a grayscale capture
+     * has nothing to register and gets four stars.
+     *
+     * @param reach how far either side of each edge to look, in pixels
+     */
+    public static Check registrationCheck(double reach) {
+        return Check.of(
+                "channelRegistration",
+                List.of(Need.SURFACE, Need.SHEET),
+                context -> measureRegistration(context, reach));
+    }
+
+    /**
+     * The check with strips reaching eight pixels either side of each edge.
+     *
      * @see #sharpeningCheck(double)
      */
     public static Check sharpeningCheck() {
@@ -206,39 +292,67 @@ public final class Sharpness {
     }
 
     private static Measurement measure(QcContext context, double reach) {
-        List<double[]> profiles =
-                edgeProfiles(context.surface().orElseThrow(), context.sheet().orElseThrow(), reach);
-        if (profiles.isEmpty()) {
-            return new Measurement(Double.NaN, 0, "no edge of the sheet gave a usable step");
-        }
-
-        double worst = Double.NEGATIVE_INFINITY;
-        for (double[] profile : profiles) {
-            worst = Math.max(worst, riseDistance(profile));
-        }
-        return new Measurement(
-                worst,
-                starsFor(worst, SHARPNESS_LADDER),
-                "the softest edge rises over " + NumberText.fixed(worst, 2) + " px across "
-                        + NumberText.of(profiles.size()) + " edges");
+        return worstEdge(
+                context,
+                reach,
+                Sharpness::riseDistance,
+                (worst, edges) -> new Measurement(
+                        worst,
+                        starsFor(worst, SHARPNESS_LADDER),
+                        "the softest edge rises over " + NumberText.fixed(worst, 2) + " px across "
+                                + NumberText.of(edges) + " edges"));
     }
 
     private static Measurement measureHalo(QcContext context, double reach) {
+        return worstEdge(
+                context,
+                reach,
+                Sharpness::haloOf,
+                (worst, edges) -> new Measurement(
+                        worst,
+                        starsFor(worst, HALO_LADDER),
+                        worst == 0
+                                ? "no halo along " + NumberText.of(edges) + " edges"
+                                : "the worst edge overshoots by " + NumberText.fixed(worst * 100, 1)
+                                        + " percent of its step across " + NumberText.of(edges) + " edges"));
+    }
+
+    private static Measurement measureRegistration(QcContext context, double reach) {
+        Surface surface = context.surface().orElseThrow();
+        if (surface.layout().colourCount() < 2) {
+            return new Measurement(0, Check.MAX_STARS, "a grayscale capture has one channel to register");
+        }
+        List<Double> shifts = channelShifts(surface, context.sheet().orElseThrow(), reach);
+        if (shifts.isEmpty()) {
+            return new Measurement(Double.NaN, 0, "no edge of the sheet gave a usable step on every channel");
+        }
+        double worst = 0;
+        for (double shift : shifts) {
+            worst = Math.max(worst, shift);
+        }
+        return new Measurement(
+                worst,
+                starsFor(worst, REGISTRATION_LADDER),
+                "the channels sit up to " + NumberText.fixed(worst, 2) + " px apart across "
+                        + NumberText.of(shifts.size()) + " edges");
+    }
+
+    /** The worst reading over the usable edges, or a note that there were none. */
+    private static Measurement worstEdge(
+            QcContext context,
+            double reach,
+            ToDoubleFunction<double[]> read,
+            BiFunction<Double, Integer, Measurement> grade) {
         List<double[]> profiles =
                 edgeProfiles(context.surface().orElseThrow(), context.sheet().orElseThrow(), reach);
         if (profiles.isEmpty()) {
             return new Measurement(Double.NaN, 0, "no edge of the sheet gave a usable step");
         }
-
         double worst = 0;
         for (double[] profile : profiles) {
-            worst = Math.max(worst, haloOf(profile));
+            worst = Math.max(worst, read.applyAsDouble(profile));
         }
-        String note = worst == 0
-                ? "no halo along " + NumberText.of(profiles.size()) + " edges"
-                : "the worst edge overshoots by " + NumberText.fixed(worst * 100, 1) + " percent of its step across "
-                        + NumberText.of(profiles.size()) + " edges";
-        return new Measurement(worst, starsFor(worst, HALO_LADDER), note);
+        return grade.apply(worst, profiles.size());
     }
 
     /**

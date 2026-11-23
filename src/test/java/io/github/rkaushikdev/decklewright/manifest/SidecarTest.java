@@ -120,7 +120,7 @@ class SidecarTest {
         void carriesTheGradingWhenThereWasOne() {
             Map<String, Object> out = sidecar();
             assertThat(number(out, "quality", "stars")).isGreaterThanOrEqualTo(0);
-            assertThat((List<?>) at(out, "quality", "checks")).hasSize(10);
+            assertThat((List<?>) at(out, "quality", "checks")).hasSize(11);
         }
 
         @Test

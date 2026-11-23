@@ -86,7 +86,8 @@ class RunnerTest {
                             "noise",
                             "clipping",
                             "sharpness",
-                            "sharpening");
+                            "sharpening",
+                            "channelRegistration");
             assertThat(new HashSet<>(names)).hasSize(names.size());
         }
 
@@ -129,7 +130,7 @@ class RunnerTest {
         @Test
         void runsEveryCheckAndReportsALevel() {
             QcResult out = runQc(args());
-            assertThat(out.findings()).hasSize(10);
+            assertThat(out.findings()).hasSize(11);
             assertThat(out.stars()).isGreaterThanOrEqualTo(0);
             assertThat(out.wanted()).isEqualTo(3);
         }
@@ -181,7 +182,7 @@ class RunnerTest {
             QcResult out = runQc(
                     args(),
                     QcOptions.defaults().withChecks(withoutChecks(standardChecks(), List.of("sharpness", "noise"))));
-            assertThat(out.findings()).hasSize(8);
+            assertThat(out.findings()).hasSize(9);
         }
 
         @Test

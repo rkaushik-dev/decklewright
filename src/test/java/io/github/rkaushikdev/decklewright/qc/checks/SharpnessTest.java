@@ -276,6 +276,83 @@ class SharpnessTest {
         }
     }
 
+    /** A colour bench, softened by four pixels, with the blue channel moved across by the given amount. */
+    static Surface fringed(double blueShift) {
+        Surface surface = Surface.create(300, 240, Layout.RGB, 8, 40);
+        for (int y = 0; y < 240; y += 1) {
+            for (int x = 0; x < 300; x += 1) {
+                for (int c = 0; c < 3; c += 1) {
+                    double at = c == 2 ? x - blueShift : x;
+                    double inside = Math.min(
+                            Math.min(at - SHEET.left(), SHEET.right() - 1 - at),
+                            Math.min(y - SHEET.top(), SHEET.bottom() - 1 - y));
+                    double share = Math.max(0, Math.min(1, inside / 4 + 0.5));
+                    surface.set(x, y, c, Num.roundHalfUp(40 + (210 - 40) * share));
+                }
+            }
+        }
+        return surface;
+    }
+
+    @Nested
+    class RegistrationCheck {
+        private Finding run(Surface surface) {
+            return runCheck(
+                    Sharpness.registrationCheck(),
+                    QcContext.empty().withSurface(surface).withSheet(SHEET));
+        }
+
+        @Test
+        void givesFourStarsWhenTheChannelsLandTogether() {
+            Finding out = run(fringed(0));
+            assertThat(out.stars()).isEqualTo(4);
+            assertThat(out.measured()).isZero();
+            assertThat(out.note()).isEqualTo("the channels sit up to 0.00 px apart across 4 edges");
+        }
+
+        @Test
+        void gradesTheWorstEdgeByHowFarTheChannelsSitApart() {
+            Finding out = run(fringed(0.6));
+            assertThat(out.measured()).isCloseTo(0.6, byLessThan(0.1));
+            assertThat(out.stars()).isEqualTo(2);
+            assertThat(run(fringed(2)).stars()).isZero();
+        }
+
+        @Test
+        void readsOnlyTheEdgesTheShiftCrosses() {
+            List<Double> shifts = Sharpness.channelShifts(fringed(1), SHEET, 8);
+            assertThat(shifts).hasSize(4);
+            assertThat(shifts.get(0)).isCloseTo(0, byLessThan(1e-9));
+            assertThat(shifts.get(1)).isCloseTo(0, byLessThan(1e-9));
+            assertThat(shifts.get(2)).isCloseTo(1, byLessThan(0.1));
+            assertThat(shifts.get(3)).isCloseTo(1, byLessThan(0.1));
+        }
+
+        @Test
+        void hasNothingToRegisterOnAGrayscaleCapture() {
+            Finding out = run(bench(2));
+            assertThat(out.stars()).isEqualTo(4);
+            assertThat(out.note()).isEqualTo("a grayscale capture has one channel to register");
+            assertThat(Sharpness.channelShifts(bench(2), SHEET, 8)).isEmpty();
+        }
+
+        @Test
+        void saysSoWhenNoEdgeGaveAStep() {
+            Finding out = run(Surface.create(300, 240, Layout.RGB, 8, 100));
+            assertThat(out.stars()).isZero();
+            assertThat(out.note()).isEqualTo("no edge of the sheet gave a usable step on every channel");
+        }
+
+        @Test
+        void putsAnEdgeHalfwayUpItsStep() {
+            assertThat(Sharpness.edgePosition(new double[] {0, 0, 50, 100, 100}))
+                    .isEqualTo(2);
+            assertThat(Sharpness.edgePosition(new double[] {100, 100, 75, 0, 0}))
+                    .isCloseTo(2 + 1.0 / 3, byLessThan(1e-9));
+            assertThat(Sharpness.edgePosition(new double[] {7, 7, 7})).isNaN();
+        }
+    }
+
     @Nested
     class TheLadder {
         @Test

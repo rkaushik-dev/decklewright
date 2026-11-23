@@ -33,7 +33,8 @@ public final class Reports {
             Map.entry("noise", "lower the gain or lengthen the exposure"),
             Map.entry("clipping", "lower the exposure and capture again"),
             Map.entry("sharpness", "refocus the stand"),
-            Map.entry("sharpening", "turn the capture sharpening down"));
+            Map.entry("sharpening", "turn the capture sharpening down"),
+            Map.entry("channelRegistration", "stop the lens down or check the back is seated"));
 
     private static final String NO_REMEDY = "look at the capture";
 

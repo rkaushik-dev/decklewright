@@ -76,7 +76,7 @@ class BatchTest {
             Ran ran = invoke(QC, root.resolve("g4181.png").toString(), "-r", "400", "--json");
             Map<?, ?> document = (Map<?, ?>) Json.parse(ran.outText());
             assertThat(document.get("item")).isEqualTo("g4181");
-            assertThat((Map<?, ?>) document.get("measurements")).hasSize(10);
+            assertThat((Map<?, ?>) document.get("measurements")).hasSize(11);
         }
 
         @Test
