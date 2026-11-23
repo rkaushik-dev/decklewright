@@ -137,8 +137,15 @@ public final class Units {
         table.put("quad15", new PhysicalSize(21, 27, Unit.INCH));
         table.put("atlasPlate", new PhysicalSize(17, 14, Unit.INCH));
         table.put("platBook", new PhysicalSize(14, 17, Unit.INCH));
+        table.put("ansiC", new PhysicalSize(17, 22, Unit.INCH));
+        table.put("ansiD", new PhysicalSize(22, 34, Unit.INCH));
+        table.put("ansiE", new PhysicalSize(34, 44, Unit.INCH));
+        table.put("archC", new PhysicalSize(18, 24, Unit.INCH));
         table.put("archD", new PhysicalSize(24, 36, Unit.INCH));
         table.put("archE", new PhysicalSize(36, 48, Unit.INCH));
+        table.put("isoA2", new PhysicalSize(420, 594, Unit.MILLIMETRE));
+        table.put("isoA1", new PhysicalSize(594, 841, Unit.MILLIMETRE));
+        table.put("isoA0", new PhysicalSize(841, 1189, Unit.MILLIMETRE));
         return Collections.unmodifiableMap(table);
     }
 }

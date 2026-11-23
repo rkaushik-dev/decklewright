@@ -2,6 +2,7 @@ package io.github.rkaushikdev.decklewright.cli.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.byLessThan;
 
 import io.github.rkaushikdev.decklewright.BadArgumentError;
 import io.github.rkaushikdev.decklewright.profile.Profile;
@@ -96,6 +97,13 @@ class CropTest {
             assertThat(ran.code()).isZero();
             assertThat(ran.out().get(0)).isEqualTo("g4181, profile house");
             assertThat(ran.outText()).containsPattern("crop ");
+            assertThat(ran.out()).contains("  sheet measures 0.4 in by 0.3 in, no nominal size");
+        }
+
+        @Test
+        void measuresTheSheetInTheUnitAsked(@TempDir Path root) throws IOException {
+            Ran ran = invoke(PLAN, List.of(captureIn(root, "g4181.png"), "--unit", "mm"));
+            assertThat(ran.out()).contains("  sheet measures 10.2 mm by 7.1 mm, no nominal size");
         }
 
         @Test
@@ -105,6 +113,11 @@ class CropTest {
             assertThat(document.get("accession")).isEqualTo("g4181");
             assertThat((Double) ((Map<?, ?>) document.get("rect")).get("width")).isGreaterThan(100);
             assertThat(document.get("settled")).isEqualTo(true);
+            Map<?, ?> sheet = (Map<?, ?>) document.get("sheet");
+            assertThat((Double) sheet.get("width")).isCloseTo(0.4, byLessThan(0.01));
+            assertThat(sheet.get("unit")).isEqualTo("in");
+            assertThat(sheet.containsKey("nominal")).isTrue();
+            assertThat(sheet.get("nominal")).isNull();
         }
 
         @Test

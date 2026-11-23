@@ -1,6 +1,7 @@
 package io.github.rkaushikdev.decklewright.measure;
 
 import io.github.rkaushikdev.decklewright.BadArgumentError;
+import io.github.rkaushikdev.decklewright.geom.Quad;
 import io.github.rkaushikdev.decklewright.geom.Size;
 import io.github.rkaushikdev.decklewright.util.Guards;
 import java.util.Map;
@@ -123,6 +124,38 @@ public final class PhysicalSizes {
         return new Sampling(
                 Sampling.ppiFrom(pixels.width(), physical.width(), physical.unit()),
                 Sampling.ppiFrom(pixels.height(), physical.height(), physical.unit()));
+    }
+
+    /**
+     * How big a sheet is on paper, off the quad the detector fitted round it: the mean of its top and
+     * bottom edges across and of its left and right edges down, each over the frequency on its own
+     * axis. Measuring the edges rather than the box round the quad keeps a turned sheet from reading
+     * larger than it is.
+     *
+     * @return in inches
+     */
+    public static PhysicalSize sheetSize(Quad quad, Sampling sampling) {
+        double[] edges = quad.edgeLengths();
+        double across = (edges[0] + edges[2]) / 2;
+        double down = (edges[1] + edges[3]) / 2;
+        return new PhysicalSize(across / sampling.x(), down / sampling.y(), Unit.INCH);
+    }
+
+    /**
+     * A sheet's size the way a work order quotes it, such as {@code 17.0 in by 14.0 in, an
+     * atlasPlate} or {@code 30.2 in by 21.0 in, no nominal size}, one place in the given unit, with
+     * {@code turned} after the name when the sheet lies the other way round from it.
+     */
+    public static String describeSheet(PhysicalSize size, Unit unit) {
+        String measured = describeSize(inUnit(size, unit), 1);
+        return matchNominal(size)
+                .map(match -> measured + ", " + article(match.name()) + " " + match.name()
+                        + (match.rotated() ? " turned" : ""))
+                .orElse(measured + ", no nominal size");
+    }
+
+    private static String article(String name) {
+        return "aeiouAEIOU".indexOf(name.charAt(0)) >= 0 ? "an" : "a";
     }
 
     /** Both sides at the report precision of the unit, such as {@code 17.0000 in by 14.0000 in}. */

@@ -6,6 +6,8 @@ import io.github.rkaushikdev.decklewright.cli.OptionSpec;
 import io.github.rkaushikdev.decklewright.cli.ParsedArgs;
 import io.github.rkaushikdev.decklewright.detect.CaptureReading;
 import io.github.rkaushikdev.decklewright.detect.Captures;
+import io.github.rkaushikdev.decklewright.measure.PhysicalSize;
+import io.github.rkaushikdev.decklewright.measure.PhysicalSizes;
 import io.github.rkaushikdev.decklewright.measure.Sampling;
 import io.github.rkaushikdev.decklewright.measure.Unit;
 import io.github.rkaushikdev.decklewright.plan.CropPlan;
@@ -86,20 +88,17 @@ public final class PlanCommand implements Command {
             PlannedCrop out =
                     CropPlanner.planCrop(reading, profile, surface.bounds(), sampling, PlanOptions.defaults());
 
+            PhysicalSize sheet =
+                    PhysicalSizes.sheetSize(reading.sheet().quad(), out.plan().sampling());
             if (args.flag("json")) {
-                sink.out(Json.stringify(planToJson(capture.accession(), profile, out), 2));
+                sink.out(Json.stringify(planToJson(capture.accession(), profile, out, sheet), 2));
                 return 0;
             }
 
-            sink.out(capture.accession() + ", profile " + profile.name());
-            for (String line : Captures.summarise(reading)) {
-                sink.out("  " + line);
-            }
-            sink.out("");
             Unit unit = Unit.parse(args.string("unit").orElseThrow());
-            for (String line : explain(out.plan(), args.flag("rules") ? out.rules() : List.of(), unit)) {
-                sink.out(line);
-            }
+            describe(capture.accession(), profile, reading, sheet, unit).forEach(sink::out);
+            explain(out.plan(), args.flag("rules") ? out.rules() : List.of(), unit)
+                    .forEach(sink::out);
 
             if (!out.settled()) {
                 sink.err("the rules did not settle after " + out.passes() + " passes");
@@ -114,7 +113,22 @@ public final class PlanCommand implements Command {
         }
     }
 
-    private static Map<String, Object> planToJson(String accession, Profile profile, PlannedCrop out) {
+    /**
+     * The accession and profile, what the reading established, and how big the sheet is on paper
+     * against the nominal sizes a work order quotes, then a blank line before the plan.
+     */
+    private static List<String> describe(
+            String accession, Profile profile, CaptureReading reading, PhysicalSize sheet, Unit unit) {
+        List<String> lines = new ArrayList<>();
+        lines.add(accession + ", profile " + profile.name());
+        Captures.summarise(reading).forEach(line -> lines.add("  " + line));
+        lines.add("  sheet measures " + PhysicalSizes.describeSheet(sheet, unit));
+        lines.add("");
+        return lines;
+    }
+
+    private static Map<String, Object> planToJson(
+            String accession, Profile profile, PlannedCrop out, PhysicalSize sheet) {
         Map<String, Object> json = new LinkedHashMap<>();
         json.put("accession", accession);
         json.put("profile", profile.name());
@@ -126,6 +140,11 @@ public final class PlanCommand implements Command {
                 "deskewDegrees",
                 Double.parseDouble(NumberText.fixed(out.plan().deskew().degrees(), 4)));
         json.put("ppi", out.plan().sampling().toJson());
+        Map<String, Object> measured = new LinkedHashMap<>(sheet.toJson());
+        measured.put(
+                "nominal",
+                PhysicalSizes.matchNominal(sheet).map(match -> match.name()).orElse(null));
+        json.put("sheet", measured);
         json.put("warnings", new ArrayList<Object>(out.plan().warnings()));
         return json;
     }

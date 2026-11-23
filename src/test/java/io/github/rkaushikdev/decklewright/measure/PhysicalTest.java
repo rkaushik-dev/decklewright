@@ -15,6 +15,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.byLessThan;
 
 import io.github.rkaushikdev.decklewright.BadArgumentError;
+import io.github.rkaushikdev.decklewright.geom.Angle;
+import io.github.rkaushikdev.decklewright.geom.Matrix;
+import io.github.rkaushikdev.decklewright.geom.Quad;
+import io.github.rkaushikdev.decklewright.geom.Rect;
 import io.github.rkaushikdev.decklewright.geom.Size;
 import io.github.rkaushikdev.decklewright.measure.PhysicalSizes.Mismatch;
 import io.github.rkaushikdev.decklewright.measure.PhysicalSizes.NominalMatch;
@@ -162,6 +166,58 @@ class PhysicalTest {
         void picksTheCloserOfTwoCandidates() {
             Optional<NominalMatch> found = matchNominal(new PhysicalSize(21.4, 27, INCH), 1);
             assertThat(found.map(NominalMatch::name)).contains("quad15");
+        }
+    }
+
+    @Nested
+    class SheetSize {
+        @Test
+        void readsTheEdgesOfTheQuadAtEachAxis() {
+            Quad quad = Quad.fromRect(Rect.of(0, 0, 6800, 5600));
+            PhysicalSize size = PhysicalSizes.sheetSize(quad, Sampling.of(400));
+            assertThat(size.width()).isEqualTo(17);
+            assertThat(size.height()).isEqualTo(14);
+            assertThat(size.unit()).isEqualTo(INCH);
+            assertThat(PhysicalSizes.sheetSize(quad, new Sampling(400, 280)).height())
+                    .isEqualTo(20);
+        }
+
+        @Test
+        void keepsATurnedSheetToItsOwnSize() {
+            Quad upright = Quad.fromRect(Rect.of(0, 0, 400, 200));
+            Quad turned = upright.transformedBy(Matrix.rotation(Angle.degrees(5)));
+            PhysicalSize size = PhysicalSizes.sheetSize(turned, Sampling.of(100));
+            assertThat(size.width()).isCloseTo(4, byLessThan(1e-9));
+            assertThat(size.height()).isCloseTo(2, byLessThan(1e-9));
+        }
+    }
+
+    @Nested
+    class DescribeSheet {
+        @Test
+        void namesTheNominalSizeAWorkOrderQuotes() {
+            assertThat(PhysicalSizes.describeSheet(new PhysicalSize(17.1, 13.9, INCH), INCH))
+                    .isEqualTo("17.1 in by 13.9 in, an atlasPlate");
+            assertThat(PhysicalSizes.describeSheet(new PhysicalSize(22, 27, INCH), INCH))
+                    .isEqualTo("22.0 in by 27.0 in, a quad75");
+        }
+
+        @Test
+        void saysWhenTheSheetLiesTheOtherWayRound() {
+            assertThat(PhysicalSizes.describeSheet(new PhysicalSize(34, 22, INCH), INCH))
+                    .isEqualTo("34.0 in by 22.0 in, an ansiD turned");
+        }
+
+        @Test
+        void quotesAnIsoSheetInTheUnitAsked() {
+            assertThat(PhysicalSizes.describeSheet(new PhysicalSize(594, 841, MILLIMETRE), MILLIMETRE))
+                    .isEqualTo("594.0 mm by 841.0 mm, an isoA1");
+        }
+
+        @Test
+        void saysSoForAnOddSize() {
+            assertThat(PhysicalSizes.describeSheet(new PhysicalSize(9, 6, INCH), INCH))
+                    .isEqualTo("9.0 in by 6.0 in, no nominal size");
         }
     }
 
