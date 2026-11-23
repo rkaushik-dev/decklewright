@@ -104,7 +104,7 @@ class VerifyTest {
         void setsTheQualityLimitsBesideTheLadders() {
             Ran ran = invoke(PROFILE, "quadrangles", "--ladders");
             assertThat(ran.code()).isZero();
-            assertThat(ran.out()).hasSize(6);
+            assertThat(ran.out()).hasSize(7);
             assertThat(ran.out().get(0))
                     .isEqualTo("skew: qc.skewTolerance 0.15, rungs 0.1 0.3 0.6 1.5, four stars at 0.1, looser");
             assertThat(ran.out())

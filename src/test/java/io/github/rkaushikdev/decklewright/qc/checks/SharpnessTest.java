@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.byLessThan;
 
 import io.github.rkaushikdev.decklewright.geom.Rect;
 import io.github.rkaushikdev.decklewright.measure.Axis;
+import io.github.rkaushikdev.decklewright.profile.QcLimits;
 import io.github.rkaushikdev.decklewright.qc.Finding;
 import io.github.rkaushikdev.decklewright.qc.QcContext;
 import io.github.rkaushikdev.decklewright.qc.Rung;
@@ -297,9 +298,13 @@ class SharpnessTest {
     @Nested
     class RegistrationCheck {
         private Finding run(Surface surface) {
+            return run(surface, TestContexts.LIMITS);
+        }
+
+        private Finding run(Surface surface, QcLimits limits) {
             return runCheck(
                     Sharpness.registrationCheck(),
-                    QcContext.empty().withSurface(surface).withSheet(SHEET));
+                    QcContext.empty().withSurface(surface).withSheet(SHEET).withLimits(limits));
         }
 
         @Test
@@ -307,15 +312,34 @@ class SharpnessTest {
             Finding out = run(fringed(0));
             assertThat(out.stars()).isEqualTo(4);
             assertThat(out.measured()).isZero();
-            assertThat(out.note()).isEqualTo("the channels sit up to 0.00 px apart across 4 edges");
+            assertThat(out.note()).isEqualTo("the channels sit up to 0.00 px apart across 4 edges, against 0.5");
         }
 
         @Test
         void gradesTheWorstEdgeByHowFarTheChannelsSitApart() {
-            Finding out = run(fringed(0.6));
+            Finding out = run(fringed(0.6), TestContexts.LIMITS.withRegistrationTolerance(1));
             assertThat(out.measured()).isCloseTo(0.6, byLessThan(0.1));
             assertThat(out.stars()).isEqualTo(2);
-            assertThat(run(fringed(2)).stars()).isZero();
+            assertThat(run(fringed(2), TestContexts.LIMITS.withRegistrationTolerance(5))
+                            .stars())
+                    .isZero();
+        }
+
+        @Test
+        void givesNoStarsPastTheProfileTolerance() {
+            Finding out = run(fringed(0.6));
+            assertThat(out.stars()).isZero();
+            assertThat(out.passed()).isFalse();
+            assertThat(run(fringed(0.3)).stars()).isEqualTo(4);
+        }
+
+        @Test
+        void declinesWithoutTheProfileLimits() {
+            Finding out = runCheck(
+                    Sharpness.registrationCheck(),
+                    QcContext.empty().withSurface(fringed(0)).withSheet(SHEET));
+            assertThat(out.ran()).isFalse();
+            assertThat(out.note()).isEqualTo("nothing to measure, no limits");
         }
 
         @Test

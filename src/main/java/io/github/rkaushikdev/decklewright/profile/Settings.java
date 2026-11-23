@@ -110,7 +110,8 @@ public final class Settings {
                 qc.maximumClipping(),
                 qc.minimumStars(),
                 qc.toneAims(),
-                qc.toneTolerance());
+                qc.toneTolerance(),
+                qc.registrationTolerance());
     }
 
     /**

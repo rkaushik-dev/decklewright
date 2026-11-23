@@ -17,7 +17,7 @@ import java.util.List;
 final class TestContexts {
     /** The house figures, at the 600 ppi the sampling tests are written against. */
     static final QcLimits LIMITS =
-            new QcLimits(Sampling.of(600), Tolerance.percent(1), 0.3, 0.1, 6, 30, 0.005, 3, List.of(), 6);
+            new QcLimits(Sampling.of(600), Tolerance.percent(1), 0.3, 0.1, 6, 30, 0.005, 3, List.of(), 6, 0.5);
 
     private TestContexts() {}
 

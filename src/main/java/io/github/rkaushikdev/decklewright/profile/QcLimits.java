@@ -20,6 +20,7 @@ import java.util.Objects;
  * @param toneAims what each patch of the step wedge should read, in sample values; copied, and
  *     empty when the profile does not aim its wedge
  * @param toneTolerance how far off its aim any one patch may read, in sample values
+ * @param registrationTolerance how far apart the colour channels may put an edge, in pixels
  * @see Settings#qcLimits(Profile)
  */
 public record QcLimits(
@@ -32,7 +33,8 @@ public record QcLimits(
         double maximumClipping,
         int minimumStars,
         List<Double> toneAims,
-        double toneTolerance) {
+        double toneTolerance,
+        double registrationTolerance) {
 
     /** Limits of the given values; the tone aims are copied. */
     public QcLimits {
@@ -43,76 +45,89 @@ public record QcLimits(
 
     /** These limits with another skew tolerance, in degrees. */
     public QcLimits withSkewTolerance(double degrees) {
-        return new QcLimits(
-                sampling,
-                samplingTolerance,
-                degrees,
-                illuminationTolerance,
-                grayBalanceTolerance,
-                minimumSnr,
-                maximumClipping,
-                minimumStars,
-                toneAims,
-                toneTolerance);
+        Draft draft = new Draft(this);
+        draft.skewTolerance = degrees;
+        return draft.build();
     }
 
     /** These limits with another illumination tolerance, as a share of the bed's mean. */
     public QcLimits withIlluminationTolerance(double share) {
-        return new QcLimits(
-                sampling,
-                samplingTolerance,
-                skewTolerance,
-                share,
-                grayBalanceTolerance,
-                minimumSnr,
-                maximumClipping,
-                minimumStars,
-                toneAims,
-                toneTolerance);
+        Draft draft = new Draft(this);
+        draft.illuminationTolerance = share;
+        return draft.build();
     }
 
     /** These limits with another gray balance tolerance, in sample values. */
     public QcLimits withGrayBalanceTolerance(double values) {
-        return new QcLimits(
-                sampling,
-                samplingTolerance,
-                skewTolerance,
-                illuminationTolerance,
-                values,
-                minimumSnr,
-                maximumClipping,
-                minimumStars,
-                toneAims,
-                toneTolerance);
+        Draft draft = new Draft(this);
+        draft.grayBalanceTolerance = values;
+        return draft.build();
     }
 
     /** These limits with another noise floor and clipping ceiling. */
     public QcLimits withNoise(double snr, double clipping) {
-        return new QcLimits(
-                sampling,
-                samplingTolerance,
-                skewTolerance,
-                illuminationTolerance,
-                grayBalanceTolerance,
-                snr,
-                clipping,
-                minimumStars,
-                toneAims,
-                toneTolerance);
+        Draft draft = new Draft(this);
+        draft.minimumSnr = snr;
+        draft.maximumClipping = clipping;
+        return draft.build();
     }
 
     /** These limits aiming the wedge's patches at the given values, held to the given tolerance. */
     public QcLimits withTone(List<Double> aims, double tolerance) {
-        return new QcLimits(
-                sampling,
-                samplingTolerance,
-                skewTolerance,
-                illuminationTolerance,
-                grayBalanceTolerance,
-                minimumSnr,
-                maximumClipping,
-                minimumStars,
-                aims,
-                tolerance);
+        Draft draft = new Draft(this);
+        draft.toneAims = aims;
+        draft.toneTolerance = tolerance;
+        return draft.build();
+    }
+
+    /** These limits letting the colour channels sit another distance apart, in pixels. */
+    public QcLimits withRegistrationTolerance(double pixels) {
+        Draft draft = new Draft(this);
+        draft.registrationTolerance = pixels;
+        return draft.build();
+    }
+
+    /** Limits being changed a figure at a time, so no change has to spell out the rest. */
+    private static final class Draft {
+        private final Sampling sampling;
+        private final Tolerance samplingTolerance;
+        private double skewTolerance;
+        private double illuminationTolerance;
+        private double grayBalanceTolerance;
+        private double minimumSnr;
+        private double maximumClipping;
+        private final int minimumStars;
+        private List<Double> toneAims;
+        private double toneTolerance;
+        private double registrationTolerance;
+
+        Draft(QcLimits from) {
+            sampling = from.sampling;
+            samplingTolerance = from.samplingTolerance;
+            skewTolerance = from.skewTolerance;
+            illuminationTolerance = from.illuminationTolerance;
+            grayBalanceTolerance = from.grayBalanceTolerance;
+            minimumSnr = from.minimumSnr;
+            maximumClipping = from.maximumClipping;
+            minimumStars = from.minimumStars;
+            toneAims = from.toneAims;
+            toneTolerance = from.toneTolerance;
+            registrationTolerance = from.registrationTolerance;
+        }
+
+        QcLimits build() {
+            return new QcLimits(
+                    sampling,
+                    samplingTolerance,
+                    skewTolerance,
+                    illuminationTolerance,
+                    grayBalanceTolerance,
+                    minimumSnr,
+                    maximumClipping,
+                    minimumStars,
+                    toneAims,
+                    toneTolerance,
+                    registrationTolerance);
+        }
     }
 }

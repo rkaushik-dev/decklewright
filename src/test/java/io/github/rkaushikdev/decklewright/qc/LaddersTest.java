@@ -41,11 +41,20 @@ class LaddersTest {
                             "qc.illuminationTolerance",
                             "qc.grayBalanceTolerance",
                             "qc.minimumSnr",
-                            "qc.maximumClipping");
+                            "qc.maximumClipping",
+                            "qc.registrationTolerance");
             assertThat(problems).allMatch(problem -> problem.severity() == Severity.NOTE);
             assertThat(problems.get(3).message())
                     .isEqualTo(
                             "is looser than four stars allows, which is 40, so a capture can pass it and miss the level");
+        }
+
+        @Test
+        void holdsTheRegistrationToleranceToItsLadder() {
+            assertThat(paths(unreachableLevels(profile(Map.of("registrationTolerance", 0.9)))))
+                    .containsExactly("qc.registrationTolerance");
+            assertThat(profile(Map.of()).qc().registrationTolerance()).isEqualTo(0.5);
+            assertThat(profile(Map.of()).qc().toJson()).containsEntry("registrationTolerance", 0.5);
         }
 
         @Test
@@ -65,7 +74,8 @@ class LaddersTest {
         @Test
         void leavesGrayBalanceAloneForAGrayCollection() {
             Profile microfilm = new ProfileRegistry().get("microfilm");
-            assertThat(paths(unreachableLevels(microfilm))).doesNotContain("qc.grayBalanceTolerance");
+            assertThat(paths(unreachableLevels(microfilm)))
+                    .doesNotContain("qc.grayBalanceTolerance", "qc.registrationTolerance");
             assertThat(paths(unreachableLevels(microfilm))).containsExactly("qc.minimumSnr");
         }
 

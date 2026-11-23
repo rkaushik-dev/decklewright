@@ -258,15 +258,16 @@ public final class Sharpness {
     /**
      * How far apart the colour channels put the sheet's edges, at the worst edge. A lens with lateral
      * colour, or a scanning back whose three passes do not land together, fringes every line on the
-     * sheet red on one side and blue on the other. The measurement is in pixels; a grayscale capture
-     * has nothing to register and gets four stars.
+     * sheet red on one side and blue on the other. The worst edge is held to the profile's
+     * registration tolerance first and the ladder after. The measurement is in pixels; a grayscale
+     * capture has nothing to register and gets four stars.
      *
      * @param reach how far either side of each edge to look, in pixels
      */
     public static Check registrationCheck(double reach) {
         return Check.of(
                 "channelRegistration",
-                List.of(Need.SURFACE, Need.SHEET),
+                List.of(Need.SURFACE, Need.SHEET, Need.LIMITS),
                 context -> measureRegistration(context, reach));
     }
 
@@ -330,11 +331,12 @@ public final class Sharpness {
         for (double shift : shifts) {
             worst = Math.max(worst, shift);
         }
+        double allowed = context.limits().orElseThrow().registrationTolerance();
         return new Measurement(
                 worst,
-                starsFor(worst, REGISTRATION_LADDER),
+                Check.starsWithin(worst, allowed, REGISTRATION_LADDER, false),
                 "the channels sit up to " + NumberText.fixed(worst, 2) + " px apart across "
-                        + NumberText.of(shifts.size()) + " edges");
+                        + NumberText.of(shifts.size()) + " edges, against " + NumberText.of(allowed));
     }
 
     /** The worst reading over the usable edges, or a note that there were none. */

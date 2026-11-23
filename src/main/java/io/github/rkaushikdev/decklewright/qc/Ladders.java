@@ -7,6 +7,7 @@ import io.github.rkaushikdev.decklewright.qc.checks.GrayBalance;
 import io.github.rkaushikdev.decklewright.qc.checks.Illumination;
 import io.github.rkaushikdev.decklewright.qc.checks.Noise;
 import io.github.rkaushikdev.decklewright.qc.checks.SamplingAndSkew;
+import io.github.rkaushikdev.decklewright.qc.checks.Sharpness;
 import io.github.rkaushikdev.decklewright.qc.checks.ToneResponse;
 import io.github.rkaushikdev.decklewright.raster.Layout;
 import io.github.rkaushikdev.decklewright.util.NumberText;
@@ -47,16 +48,25 @@ public final class Ladders {
             new LadderedLimit(
                     "clipping", "qc.maximumClipping", Noise.CLIPPING_LADDER, false, Profile.Qc::maximumClipping),
             new LadderedLimit(
-                    "toneResponse", "qc.toneTolerance", ToneResponse.TONE_LADDER, false, Profile.Qc::toneTolerance));
+                    "toneResponse", "qc.toneTolerance", ToneResponse.TONE_LADDER, false, Profile.Qc::toneTolerance),
+            new LadderedLimit(
+                    "channelRegistration",
+                    "qc.registrationTolerance",
+                    Sharpness.REGISTRATION_LADDER,
+                    false,
+                    Profile.Qc::registrationTolerance));
+
+    /** The checks a grayscale capture always passes, since it has one channel. */
+    private static final List<String> COLOUR_ONLY = List.of("grayBalance", "channelRegistration");
 
     private Ladders() {}
 
     /**
      * The limits a profile sets looser than the rung for the level it asks for, each as a note: a
      * capture can pass them and still never reach the level. The tone tolerance is only read when
-     * the profile aims its wedge, since the check does not run otherwise, and the gray balance
-     * tolerance is not read for a collection whose every derivative is gray, since a grayscale
-     * capture cannot carry a cast.
+     * the profile aims its wedge, since the check does not run otherwise, and the gray balance and
+     * registration tolerances are not read for a collection whose every derivative is gray, since a
+     * grayscale capture has one channel.
      */
     public static List<Problem> unreachableLevels(Profile profile) {
         Profile.Qc qc = profile.qc();
@@ -64,7 +74,7 @@ public final class Ladders {
         List<Problem> out = new ArrayList<>();
         for (LadderedLimit limit : LADDERED) {
             if (limit.check().equals("toneResponse") && qc.toneAims().isEmpty()
-                    || limit.check().equals("grayBalance") && grayOnly(profile)) {
+                    || grayOnly(profile) && COLOUR_ONLY.contains(limit.check())) {
                 continue;
             }
             OptionalDouble rung = Check.limitAt(limit.ladder(), wanted);

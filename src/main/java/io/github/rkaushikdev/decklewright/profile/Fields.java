@@ -213,6 +213,8 @@ public final class Fields {
                 number(bounded().withMin(1).withMax(4).withInteger(true).withFallback(3.0)));
         fields.put("toneAims", list(number(bounded().withMin(0).withMax(65535))));
         fields.put("toneTolerance", number(bounded().withMin(0).withMax(255).withFallback(6.0)));
+        fields.put(
+                "registrationTolerance", number(bounded().withMin(0).withMax(20).withFallback(0.5)));
         return fields;
     }
 
@@ -310,7 +312,8 @@ public final class Fields {
                 numberAt(read, "maximumClipping"),
                 wholeAt(read, "minimumStars"),
                 numbersAt(read, "toneAims"),
-                numberAt(read, "toneTolerance"));
+                numberAt(read, "toneTolerance"),
+                numberAt(read, "registrationTolerance"));
     }
 
     private static Profile.Naming toNaming(Map<?, ?> read) {

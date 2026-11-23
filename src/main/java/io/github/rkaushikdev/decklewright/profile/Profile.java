@@ -262,6 +262,7 @@ public record Profile(
      * @param toneAims what each patch of the step wedge should read, in sample values, lightest or
      *     darkest first; copied, and empty when the profile does not aim its wedge
      * @param toneTolerance how far off its aim any one patch may read, in sample values
+     * @param registrationTolerance how far apart the colour channels may put an edge, in pixels
      */
     public record Qc(
             double samplingPpi,
@@ -273,7 +274,8 @@ public record Profile(
             double maximumClipping,
             int minimumStars,
             List<Double> toneAims,
-            double toneTolerance)
+            double toneTolerance,
+            double registrationTolerance)
             implements JsonValue {
 
         /** Quality settings of the given values; the tone aims are copied. */
@@ -294,7 +296,8 @@ public record Profile(
                     maximumClipping,
                     stars,
                     toneAims,
-                    toneTolerance);
+                    toneTolerance,
+                    registrationTolerance);
         }
 
         /** The settings in field order, the tone aims left out when there are none, in a new map. */
@@ -313,6 +316,7 @@ public record Profile(
                 json.put("toneAims", new ArrayList<Object>(toneAims));
             }
             json.put("toneTolerance", toneTolerance);
+            json.put("registrationTolerance", registrationTolerance);
             return json;
         }
     }
