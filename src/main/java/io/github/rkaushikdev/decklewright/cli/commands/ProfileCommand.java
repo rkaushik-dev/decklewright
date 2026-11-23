@@ -36,7 +36,11 @@ public final class ProfileCommand implements Command {
                     "setting",
                     OptionSpec.string("show one setting rather than all of them")
                             .withLetter('s')),
-            Map.entry("paths", OptionSpec.flag("list every setting a profile can carry")));
+            Map.entry("paths", OptionSpec.flag("list every setting a profile can carry")),
+            Map.entry(
+                    "ladders",
+                    OptionSpec.flag("set each quality limit beside the ladder its check grades on")
+                            .withLetter('l')));
 
     @Override
     public String usage() {
@@ -54,8 +58,9 @@ public final class ProfileCommand implements Command {
     }
 
     /**
-     * List every setting path, list the shipped profiles, show one setting, or show a profile and
-     * check it.
+     * List every setting path, list the shipped profiles, show one setting, set a profile's quality
+     * limits beside the ladders, or show a profile and check it, which includes noting the limits
+     * looser than the level it asks for.
      *
      * @return one when the profile could not be read, carries no such setting, or has a fault,
      *     otherwise zero; a profile with only notes against it is zero
@@ -71,27 +76,18 @@ public final class ProfileCommand implements Command {
             }
 
             if (name.isEmpty()) {
-                ProfileRegistry registry = new ProfileRegistry();
-                if (args.flag("json")) {
-                    sink.out(Json.stringify(new ArrayList<Object>(registry.names()), 2));
-                    return 0;
-                }
-                for (String one : registry.names()) {
-                    sink.out(trimEnd(one + "  " + registry.get(one).title()));
-                }
-                return 0;
+                return listProfiles(args.flag("json"), sink);
             }
 
             Profile profile = Common.profileNamed(name.get());
 
             Optional<String> setting = args.string("setting").filter(path -> !path.isEmpty());
             if (setting.isPresent()) {
-                Optional<Object> value = Fields.settingAt(profile, setting.get());
-                if (value.isEmpty()) {
-                    sink.err("this profile carries no setting called " + setting.get());
-                    return 1;
-                }
-                sink.out(settingText(value.get()));
+                return showSetting(profile, setting.get(), sink);
+            }
+
+            if (args.flag("ladders")) {
+                Ladders.describeLadders(profile).forEach(sink::out);
                 return 0;
             }
 
@@ -117,6 +113,30 @@ public final class ProfileCommand implements Command {
         } catch (DeckleError caught) {
             return Common.report(sink, caught);
         }
+    }
+
+    /** Every shipped profile, one to a line with its title, or their names as a json list. */
+    private static int listProfiles(boolean json, Io sink) {
+        ProfileRegistry registry = new ProfileRegistry();
+        if (json) {
+            sink.out(Json.stringify(new ArrayList<Object>(registry.names()), 2));
+            return 0;
+        }
+        for (String one : registry.names()) {
+            sink.out(trimEnd(one + "  " + registry.get(one).title()));
+        }
+        return 0;
+    }
+
+    /** One setting on its own, or a refusal when the profile carries none at the path. */
+    private static int showSetting(Profile profile, String path, Io sink) {
+        Optional<Object> value = Fields.settingAt(profile, path);
+        if (value.isEmpty()) {
+            sink.err("this profile carries no setting called " + path);
+            return 1;
+        }
+        sink.out(settingText(value.get()));
+        return 0;
     }
 
     /** A setting on its own: a group or a list as indented json, anything else as its text. */

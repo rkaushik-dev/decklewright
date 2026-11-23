@@ -79,6 +79,33 @@ public final class Ladders {
         return List.copyOf(out);
     }
 
+    /**
+     * Each laddered limit of a profile in a line, with the ladder beside it and the rung the level
+     * asked for, such as {@code skew: qc.skewTolerance 0.15, rungs 0.1 0.3 0.6 1.5, four stars at
+     * 0.1, looser}. The rungs run from four stars down. A limit looser than its rung ends {@code
+     * looser}, one at it or tighter ends {@code within}.
+     */
+    public static List<String> describeLadders(Profile profile) {
+        Profile.Qc qc = profile.qc();
+        int wanted = qc.minimumStars();
+        List<String> lines = new ArrayList<>();
+        for (LadderedLimit limit : LADDERED) {
+            double written = limit.read().applyAsDouble(qc);
+            List<String> rungs = limit.ladder().stream()
+                    .map(rung -> NumberText.of(rung.limit()))
+                    .toList();
+            String line = limit.check() + ": " + limit.path() + " " + NumberText.of(written) + ", rungs "
+                    + String.join(" ", rungs);
+            OptionalDouble rung = Check.limitAt(limit.ladder(), wanted);
+            if (rung.isPresent()) {
+                line += ", " + Levels.levelName(wanted) + " at " + NumberText.of(rung.getAsDouble()) + ", "
+                        + (limit.looser(written, rung.getAsDouble()) ? "looser" : "within");
+            }
+            lines.add(line);
+        }
+        return List.copyOf(lines);
+    }
+
     private static boolean grayOnly(Profile profile) {
         return !profile.derivatives().isEmpty()
                 && profile.derivatives().stream().allMatch(derivative -> derivative.layout() == Layout.GRAY);

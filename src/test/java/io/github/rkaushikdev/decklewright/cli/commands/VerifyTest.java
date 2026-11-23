@@ -101,6 +101,30 @@ class VerifyTest {
         }
 
         @Test
+        void setsTheQualityLimitsBesideTheLadders() {
+            Ran ran = invoke(PROFILE, "quadrangles", "--ladders");
+            assertThat(ran.code()).isZero();
+            assertThat(ran.out()).hasSize(6);
+            assertThat(ran.out().get(0))
+                    .isEqualTo("skew: qc.skewTolerance 0.15, rungs 0.1 0.3 0.6 1.5, four stars at 0.1, looser");
+            assertThat(ran.out())
+                    .contains(
+                            "clipping: qc.maximumClipping 0.001, rungs 0.001 0.005 0.02 0.05, four stars at 0.001, within");
+            assertThat(ran.err()).isEmpty();
+        }
+
+        @Test
+        void notesALimitLooserThanTheLevelWhenShowingAProfile() {
+            Ran ran = invoke(PROFILE, "quadrangles");
+            assertThat(ran.code()).isZero();
+            assertThat(ran.err())
+                    .contains(
+                            "note: qc.minimumSnr: is looser than four stars allows, which is 40, so a capture can pass"
+                                    + " it and miss the level");
+            assertThat(invoke(PROFILE, "house").err()).isEmpty();
+        }
+
+        @Test
         void refusesANameNothingKnows() {
             Ran ran = invoke(PROFILE, "nothing");
             assertThat(ran.code()).isEqualTo(1);

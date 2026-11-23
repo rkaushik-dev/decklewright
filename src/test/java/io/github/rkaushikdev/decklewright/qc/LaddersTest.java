@@ -78,6 +78,24 @@ class LaddersTest {
     }
 
     @Nested
+    class DescribeLadders {
+        @Test
+        void givesALinePerLimitWithTheRungTheLevelSitsOn() {
+            List<String> lines = Ladders.describeLadders(profile(Map.of()));
+            assertThat(lines).hasSize(LADDERED.size());
+            assertThat(lines.get(3)).isEqualTo("noise: qc.minimumSnr 30, rungs 40 30 24 18, three stars at 30, within");
+        }
+
+        @Test
+        void saysWhichLimitsAreLooserThanTheLevel() {
+            List<String> lines = Ladders.describeLadders(profile(Map.of("minimumStars", 2, "skewTolerance", 0.9)));
+            assertThat(lines.get(0))
+                    .isEqualTo("skew: qc.skewTolerance 0.9, rungs 0.1 0.3 0.6 1.5, two stars at 0.6, looser");
+            assertThat(lines.get(1)).endsWith("two stars at 0.2, within");
+        }
+    }
+
+    @Nested
     class TheTable {
         @Test
         void pairsEachLimitWithItsOwnChecksLadder() {
