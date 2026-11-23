@@ -29,11 +29,18 @@ import java.util.Optional;
  *
  * <p>It is reported in pixels of rise, which is what an operator can act on: two pixels means the
  * stand needs refocusing and six means somebody knocked it.
+ *
+ * <p>The same edges are read a second time for the halo that capture sharpening leaves, because a
+ * soft stand with the sharpening turned up reads crisp on rise distance alone.
  */
 public final class Sharpness {
     /** Rise distance in pixels from a tenth to nine tenths, per star. */
     public static final List<Rung> SHARPNESS_LADDER =
             List.of(new Rung(4, 1.5), new Rung(3, 2.5), new Rung(2, 4), new Rung(1, 7));
+
+    /** Overshoot past either end of an edge, as a share of the step, per star. */
+    public static final List<Rung> HALO_LADDER =
+            List.of(new Rung(4, 0.05), new Rung(3, 0.1), new Rung(2, 0.2), new Rung(1, 0.35));
 
     /** The smallest strip, either way, that still has a step worth reading. */
     private static final double THINNEST = 3;
@@ -137,34 +144,101 @@ public final class Sharpness {
         return Check.of("sharpness", List.of(Need.SURFACE, Need.SHEET), context -> measure(context, reach));
     }
 
-    private static Measurement measure(QcContext context, double reach) {
-        Surface surface = context.surface().orElseThrow();
-        List<Double> rises = new ArrayList<>();
-        for (EdgeStrip edge : edgeStrips(
-                context.sheet().orElseThrow(), StripOptions.defaults().withReach(reach))) {
-            Optional<double[]> profile = edgeProfile(surface, edge.strip(), edge.across());
-            if (profile.isEmpty()) {
-                continue;
-            }
-            double rise = riseDistance(profile.get());
-            if (Double.isFinite(rise)) {
-                rises.add(rise);
-            }
+    /**
+     * How far the profile overshoots the level it settles at, on either side of the step, as a share
+     * of the step: the bright rim and dark trench that capture sharpening draws along every edge. A
+     * clean step stays inside its two ends and reads zero.
+     *
+     * @param profile the levels across the edge, in order; left untouched
+     * @return the larger of the overshoot past the far end and the undershoot past the near end, as a
+     *     share of the step; not a number when there is no step, as for {@link #riseDistance}
+     */
+    public static double haloOf(double[] profile) {
+        if (!Double.isFinite(riseDistance(profile))) {
+            return Double.NaN;
         }
+        double first = profile[0];
+        double last = profile[profile.length - 1];
+        double high = Math.max(first, last);
+        double low = Math.min(first, last);
+        double over = 0;
+        for (double value : profile) {
+            over = Math.max(over, Math.max(value - high, low - value));
+        }
+        return over / (high - low);
+    }
 
-        if (rises.isEmpty()) {
+    /**
+     * The profile across each of the sheet's four edges that came out with a usable step, in the
+     * order {@link #edgeStrips(Rect, StripOptions)} gives the strips.
+     *
+     * @param reach how far either side of each edge to look, in pixels
+     */
+    public static List<double[]> edgeProfiles(Surface surface, Rect sheet, double reach) {
+        List<double[]> out = new ArrayList<>();
+        for (EdgeStrip edge : edgeStrips(sheet, StripOptions.defaults().withReach(reach))) {
+            edgeProfile(surface, edge.strip(), edge.across())
+                    .filter(profile -> Double.isFinite(riseDistance(profile)))
+                    .ifPresent(out::add);
+        }
+        return List.copyOf(out);
+    }
+
+    /**
+     * The check with strips reaching eight pixels either side of each edge.
+     *
+     * @see #sharpeningCheck(double)
+     */
+    public static Check sharpeningCheck() {
+        return sharpeningCheck(StripOptions.defaults().reach());
+    }
+
+    /**
+     * The halo along the worst of the sheet's edges that gave a usable step. Sharpening in the
+     * capture software makes a soft stand pass the sharpness check by drawing a rim along every line
+     * on the sheet, and the rim is an artefact the master is not allowed to carry. The measurement is
+     * the overshoot as a share of the step.
+     *
+     * @param reach how far either side of each edge to look, in pixels
+     */
+    public static Check sharpeningCheck(double reach) {
+        return Check.of("sharpening", List.of(Need.SURFACE, Need.SHEET), context -> measureHalo(context, reach));
+    }
+
+    private static Measurement measure(QcContext context, double reach) {
+        List<double[]> profiles =
+                edgeProfiles(context.surface().orElseThrow(), context.sheet().orElseThrow(), reach);
+        if (profiles.isEmpty()) {
             return new Measurement(Double.NaN, 0, "no edge of the sheet gave a usable step");
         }
 
         double worst = Double.NEGATIVE_INFINITY;
-        for (double rise : rises) {
-            worst = Math.max(worst, rise);
+        for (double[] profile : profiles) {
+            worst = Math.max(worst, riseDistance(profile));
         }
         return new Measurement(
                 worst,
                 starsFor(worst, SHARPNESS_LADDER),
                 "the softest edge rises over " + NumberText.fixed(worst, 2) + " px across "
-                        + NumberText.of(rises.size()) + " edges");
+                        + NumberText.of(profiles.size()) + " edges");
+    }
+
+    private static Measurement measureHalo(QcContext context, double reach) {
+        List<double[]> profiles =
+                edgeProfiles(context.surface().orElseThrow(), context.sheet().orElseThrow(), reach);
+        if (profiles.isEmpty()) {
+            return new Measurement(Double.NaN, 0, "no edge of the sheet gave a usable step");
+        }
+
+        double worst = 0;
+        for (double[] profile : profiles) {
+            worst = Math.max(worst, haloOf(profile));
+        }
+        String note = worst == 0
+                ? "no halo along " + NumberText.of(profiles.size()) + " edges"
+                : "the worst edge overshoots by " + NumberText.fixed(worst * 100, 1) + " percent of its step across "
+                        + NumberText.of(profiles.size()) + " edges";
+        return new Measurement(worst, starsFor(worst, HALO_LADDER), note);
     }
 
     /**

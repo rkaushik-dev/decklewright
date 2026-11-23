@@ -44,7 +44,8 @@ public final class QcRunner {
 
     /**
      * The checks that run on every capture, in the order a report lists them: sampling, skew, skew
-     * agreement, illumination, gray balance, the steps of the wedge, noise, clipping and sharpness.
+     * agreement, illumination, gray balance, the steps of the wedge, noise, clipping, sharpness and
+     * sharpening.
      */
     public static List<Check> standardChecks() {
         return List.of(
@@ -56,7 +57,8 @@ public final class QcRunner {
                 WedgeSteps.wedgeStepsCheck(),
                 Noise.noiseCheck(),
                 Noise.clippingCheck(),
-                Sharpness.sharpnessCheck());
+                Sharpness.sharpnessCheck(),
+                Sharpness.sharpeningCheck());
     }
 
     /**

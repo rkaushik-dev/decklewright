@@ -183,6 +183,99 @@ class SharpnessTest {
         }
     }
 
+    /** The bench with a rim of the given height drawn just inside every edge and a trench just outside. */
+    static Surface sharpened(double rim) {
+        Surface surface = bench(0);
+        for (int y = 0; y < 240; y += 1) {
+            for (int x = 0; x < 300; x += 1) {
+                double inside = Math.min(
+                        Math.min(x - SHEET.left(), SHEET.right() - 1 - x),
+                        Math.min(y - SHEET.top(), SHEET.bottom() - 1 - y));
+                if (inside == 0) {
+                    surface.set(x, y, 0, Math.min(255, 210 + rim));
+                } else if (inside == -1) {
+                    surface.set(x, y, 0, Math.max(0, 40 - rim));
+                }
+            }
+        }
+        return surface;
+    }
+
+    @Nested
+    class HaloOf {
+        @Test
+        void isZeroForAStepThatStaysBetweenItsEnds() {
+            assertThat(Sharpness.haloOf(new double[] {10, 10, 50, 90, 90})).isZero();
+        }
+
+        @Test
+        void measuresAnOvershootPastTheFarEndAsAShareOfTheStep() {
+            assertThat(Sharpness.haloOf(new double[] {10, 10, 100, 90, 90})).isEqualTo(0.125);
+        }
+
+        @Test
+        void measuresAnUndershootPastTheNearEndToo() {
+            assertThat(Sharpness.haloOf(new double[] {90, 90, 0, 10, 10})).isEqualTo(0.125);
+        }
+
+        @Test
+        void givesNothingBackWithoutAStep() {
+            assertThat(Sharpness.haloOf(new double[] {40, 40, 40, 40})).isNaN();
+            assertThat(Sharpness.haloOf(new double[] {40, 90})).isNaN();
+        }
+    }
+
+    @Nested
+    class SharpeningCheck {
+        private Finding run(Surface surface) {
+            return runCheck(
+                    Sharpness.sharpeningCheck(),
+                    QcContext.empty().withSurface(surface).withSheet(SHEET));
+        }
+
+        @Test
+        void givesFourStarsToAnEdgeWithNoHalo() {
+            Finding out = run(bench(2));
+            assertThat(out.stars()).isEqualTo(4);
+            assertThat(out.note()).isEqualTo("no halo along 4 edges");
+        }
+
+        @Test
+        void dropsStarsAsTheSharpeningRimGrows() {
+            // the step is 170 values tall, so a 25 value rim is just under fifteen percent
+            Finding out = run(sharpened(25));
+            assertThat(out.measured()).isCloseTo(25 / 170.0, byLessThan(1e-9));
+            assertThat(out.stars()).isEqualTo(2);
+            assertThat(out.note()).isEqualTo("the worst edge overshoots by 14.7 percent of its step across 4 edges");
+            // the rim clips at white, so the trench below the bed is what grades this one
+            assertThat(run(sharpened(70)).measured()).isCloseTo(45 / 170.0, byLessThan(1e-9));
+            assertThat(run(sharpened(70)).stars()).isEqualTo(1);
+        }
+
+        @Test
+        void passesTheSharpnessCheckThatTheHaloFools() {
+            Surface surface = sharpened(25);
+            Finding sharp = runCheck(
+                    sharpnessCheck(), QcContext.empty().withSurface(surface).withSheet(SHEET));
+            assertThat(sharp.stars()).isEqualTo(4);
+            assertThat(run(surface).stars()).isLessThan(sharp.stars());
+        }
+
+        @Test
+        void saysSoWhenNoEdgeGaveAStep() {
+            Finding out = run(Surface.create(300, 240, Layout.GRAY, 8, 100));
+            assertThat(out.stars()).isZero();
+            assertThat(out.note()).isEqualTo("no edge of the sheet gave a usable step");
+        }
+
+        @Test
+        void readsTheSameEdgesTheSharpnessCheckReads() {
+            assertThat(Sharpness.edgeProfiles(bench(2), SHEET, 8)).hasSize(4);
+            assertThat(Sharpness.edgeProfiles(bench(2), Rect.of(400, 400, 20, 20), 8))
+                    .isEmpty();
+        }
+    }
+
     @Nested
     class TheLadder {
         @Test

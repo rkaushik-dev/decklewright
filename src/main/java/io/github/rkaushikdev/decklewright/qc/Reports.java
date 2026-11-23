@@ -32,7 +32,8 @@ public final class Reports {
             Map.entry("wedgeSteps", "open the exposure up until every step of the wedge reads apart"),
             Map.entry("noise", "lower the gain or lengthen the exposure"),
             Map.entry("clipping", "lower the exposure and capture again"),
-            Map.entry("sharpness", "refocus the stand"));
+            Map.entry("sharpness", "refocus the stand"),
+            Map.entry("sharpening", "turn the capture sharpening down"));
 
     private static final String NO_REMEDY = "look at the capture";
 

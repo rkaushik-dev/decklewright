@@ -85,7 +85,8 @@ class RunnerTest {
                             "wedgeSteps",
                             "noise",
                             "clipping",
-                            "sharpness");
+                            "sharpness",
+                            "sharpening");
             assertThat(new HashSet<>(names)).hasSize(names.size());
         }
 
@@ -128,7 +129,7 @@ class RunnerTest {
         @Test
         void runsEveryCheckAndReportsALevel() {
             QcResult out = runQc(args());
-            assertThat(out.findings()).hasSize(9);
+            assertThat(out.findings()).hasSize(10);
             assertThat(out.stars()).isGreaterThanOrEqualTo(0);
             assertThat(out.wanted()).isEqualTo(3);
         }
@@ -180,7 +181,7 @@ class RunnerTest {
             QcResult out = runQc(
                     args(),
                     QcOptions.defaults().withChecks(withoutChecks(standardChecks(), List.of("sharpness", "noise"))));
-            assertThat(out.findings()).hasSize(7);
+            assertThat(out.findings()).hasSize(8);
         }
 
         @Test
