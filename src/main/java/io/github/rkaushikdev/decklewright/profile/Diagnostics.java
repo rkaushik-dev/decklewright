@@ -33,6 +33,8 @@ public final class Diagnostics {
             size = "longest side " + NumberText.of(derivative.longestSide().getAsDouble()) + " px";
         } else if (derivative.scale().isPresent()) {
             size = "scaled to " + NumberText.of(derivative.scale().getAsDouble());
+        } else if (derivative.ppi().isPresent()) {
+            size = "at " + NumberText.of(derivative.ppi().getAsDouble()) + " ppi";
         } else {
             size = "full size";
         }

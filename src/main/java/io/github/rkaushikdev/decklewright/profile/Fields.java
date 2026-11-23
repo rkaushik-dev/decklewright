@@ -189,6 +189,7 @@ public final class Fields {
         fields.put("format", choice(OUTPUT_FORMATS, fallback("png")));
         fields.put("longestSide", number(bounded().withMin(1).withInteger(true)));
         fields.put("scale", number(bounded().withMin(0.001).withMax(4)));
+        fields.put("ppi", number(bounded().withMin(1)));
         fields.put("depth", choice(Depth.LABELS, fallback("8")));
         fields.put("layout", choice(labels(Layout.GRAY, Layout.RGB), fallback("rgb")));
         fields.put("kernel", choice(KERNELS, fallback("catmullRom")));
@@ -291,6 +292,7 @@ public final class Fields {
                 OutputFormat.parse((String) read.get("format")),
                 optionalAt(read, "longestSide"),
                 optionalAt(read, "scale"),
+                optionalAt(read, "ppi"),
                 Depth.parse((String) read.get("depth")),
                 Layout.parse((String) read.get("layout")),
                 (String) read.get("kernel"),

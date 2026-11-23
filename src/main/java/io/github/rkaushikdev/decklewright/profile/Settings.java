@@ -89,6 +89,7 @@ public final class Settings {
                         derivative.format(),
                         derivative.longestSide(),
                         derivative.scale(),
+                        derivative.ppi(),
                         derivative.depth().bits(),
                         derivative.layout(),
                         derivative.kernel(),

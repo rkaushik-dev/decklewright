@@ -11,6 +11,7 @@ import static io.github.rkaushikdev.decklewright.testing.Bench.paint;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.rkaushikdev.decklewright.BadArgumentError;
 import io.github.rkaushikdev.decklewright.PipelineError;
 import io.github.rkaushikdev.decklewright.geom.Angle;
 import io.github.rkaushikdev.decklewright.geom.Rect;
@@ -25,6 +26,7 @@ import io.github.rkaushikdev.decklewright.raster.Surface;
 import io.github.rkaushikdev.decklewright.raster.ops.PaddedCrop;
 import io.github.rkaushikdev.decklewright.util.NumberText;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Nested;
@@ -180,6 +182,53 @@ class RenderTest {
         }
 
         @Test
+        void reducesToAPpiAgainstTheMastersFrequency() {
+            assertThat(targetSize(
+                            Size.of(1200, 800),
+                            TestRecipe.unnamed().withPpi(150).recipe(),
+                            Optional.of(Sampling.of(600))))
+                    .contains(Size.of(300, 200));
+        }
+
+        @Test
+        void setsAPpiAgainstTheCoarserAxis() {
+            assertThat(targetSize(
+                            Size.of(1200, 800),
+                            TestRecipe.unnamed().withPpi(150).recipe(),
+                            Optional.of(new Sampling(600, 500))))
+                    .contains(Size.of(360, 240));
+        }
+
+        @Test
+        void neverEnlargesToReachAPpi() {
+            assertThat(targetSize(
+                            Size.of(1200, 800),
+                            TestRecipe.unnamed().withPpi(800).recipe(),
+                            Optional.of(Sampling.of(600))))
+                    .isEmpty();
+        }
+
+        @Test
+        void letsALongestSideWinOverAPpi() {
+            assertThat(targetSize(
+                            Size.of(1200, 800),
+                            TestRecipe.unnamed()
+                                    .withLongestSide(600)
+                                    .withPpi(150)
+                                    .recipe(),
+                            Optional.of(Sampling.of(600))))
+                    .contains(Size.of(600, 400));
+        }
+
+        @Test
+        void refusesAPpiWithNoFrequencyToSetItAgainst() {
+            DerivativeRecipe recipe = TestRecipe.named("service").withPpi(150).recipe();
+            assertThatThrownBy(() -> targetSize(Size.of(1200, 800), recipe))
+                    .isInstanceOf(BadArgumentError.class)
+                    .hasMessage("the service derivative asks for a ppi and the master has no frequency");
+        }
+
+        @Test
         void readsAScaleOfOneAsNoChange() {
             assertThat(targetSize(
                             Size.of(100, 80), TestRecipe.unnamed().withScale(1).recipe()))
@@ -204,6 +253,14 @@ class RenderTest {
             Rendered out = renderDerivative(master, RECIPES.get(1), sampling);
             assertThat(out.surface().width()).isEqualTo(80);
             assertThat(out.sampling().x()).isEqualTo(200.0);
+        }
+
+        @Test
+        void writesADerivativeAtThePpiItAsksFor() {
+            Rendered out = renderDerivative(
+                    master, TestRecipe.named("service").withPpi(100).recipe(), sampling);
+            assertThat(out.surface().width()).isEqualTo(40);
+            assertThat(out.sampling().x()).isEqualTo(100.0);
         }
 
         @Test

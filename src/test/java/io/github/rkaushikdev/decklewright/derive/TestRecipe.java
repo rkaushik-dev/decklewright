@@ -17,6 +17,7 @@ record TestRecipe(
         OutputFormat format,
         OptionalDouble longestSide,
         OptionalDouble scale,
+        OptionalDouble ppi,
         int depth,
         Layout layout,
         String kernel,
@@ -27,6 +28,7 @@ record TestRecipe(
         return new TestRecipe(
                 name,
                 OutputFormat.PNG,
+                OptionalDouble.empty(),
                 OptionalDouble.empty(),
                 OptionalDouble.empty(),
                 8,
@@ -47,6 +49,7 @@ record TestRecipe(
                 recipe.format(),
                 recipe.longestSide(),
                 recipe.scale(),
+                recipe.ppi(),
                 recipe.depth(),
                 recipe.layout(),
                 recipe.kernel(),
@@ -54,39 +57,45 @@ record TestRecipe(
     }
 
     TestRecipe withName(String value) {
-        return new TestRecipe(value, format, longestSide, scale, depth, layout, kernel, keepMetadata);
+        return new TestRecipe(value, format, longestSide, scale, ppi, depth, layout, kernel, keepMetadata);
     }
 
     TestRecipe withFormat(OutputFormat value) {
-        return new TestRecipe(name, value, longestSide, scale, depth, layout, kernel, keepMetadata);
+        return new TestRecipe(name, value, longestSide, scale, ppi, depth, layout, kernel, keepMetadata);
     }
 
     TestRecipe withLongestSide(double value) {
-        return new TestRecipe(name, format, OptionalDouble.of(value), scale, depth, layout, kernel, keepMetadata);
+        return new TestRecipe(name, format, OptionalDouble.of(value), scale, ppi, depth, layout, kernel, keepMetadata);
     }
 
     TestRecipe withScale(double value) {
-        return new TestRecipe(name, format, longestSide, OptionalDouble.of(value), depth, layout, kernel, keepMetadata);
+        return new TestRecipe(
+                name, format, longestSide, OptionalDouble.of(value), ppi, depth, layout, kernel, keepMetadata);
+    }
+
+    TestRecipe withPpi(double value) {
+        return new TestRecipe(
+                name, format, longestSide, scale, OptionalDouble.of(value), depth, layout, kernel, keepMetadata);
     }
 
     TestRecipe withDepth(int value) {
-        return new TestRecipe(name, format, longestSide, scale, value, layout, kernel, keepMetadata);
+        return new TestRecipe(name, format, longestSide, scale, ppi, value, layout, kernel, keepMetadata);
     }
 
     TestRecipe withLayout(Layout value) {
-        return new TestRecipe(name, format, longestSide, scale, depth, value, kernel, keepMetadata);
+        return new TestRecipe(name, format, longestSide, scale, ppi, depth, value, kernel, keepMetadata);
     }
 
     TestRecipe withKernel(String value) {
-        return new TestRecipe(name, format, longestSide, scale, depth, layout, value, keepMetadata);
+        return new TestRecipe(name, format, longestSide, scale, ppi, depth, layout, value, keepMetadata);
     }
 
     TestRecipe withKeepMetadata(boolean value) {
-        return new TestRecipe(name, format, longestSide, scale, depth, layout, kernel, value);
+        return new TestRecipe(name, format, longestSide, scale, ppi, depth, layout, kernel, value);
     }
 
     /** The finished recipe. */
     DerivativeRecipe recipe() {
-        return new DerivativeRecipe(name, format, longestSide, scale, depth, layout, kernel, keepMetadata);
+        return new DerivativeRecipe(name, format, longestSide, scale, ppi, depth, layout, kernel, keepMetadata);
     }
 }

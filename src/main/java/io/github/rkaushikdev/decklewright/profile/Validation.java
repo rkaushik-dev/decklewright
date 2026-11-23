@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalDouble;
 import java.util.Set;
 
 /**
@@ -80,6 +81,15 @@ public final class Validation {
         }
 
         problems.addAll(inspectDerivatives(profile.derivatives()));
+        for (int i = 0; i < profile.derivatives().size(); i += 1) {
+            OptionalDouble ppi = profile.derivatives().get(i).ppi();
+            if (ppi.isPresent() && ppi.getAsDouble() >= qc.samplingPpi()) {
+                problems.add(note(
+                        "derivatives[" + i + "].ppi",
+                        "asks for " + NumberText.of(ppi.getAsDouble()) + " ppi from a capture taken at "
+                                + NumberText.of(qc.samplingPpi()) + ", so it is written full size"));
+            }
+        }
 
         if (profile.derivatives().isEmpty()) {
             problems.add(note("derivatives", "is empty, so a run will plan a crop and write nothing"));
@@ -105,12 +115,12 @@ public final class Validation {
                 problems.add(fault(path + ".name", "repeats the name " + derivative.name()));
             }
 
-            boolean hasSide = derivative.longestSide().isPresent();
-            boolean hasScale = derivative.scale().isPresent();
-            if (hasSide && hasScale) {
-                problems.add(fault(path, "sets both a longest side and a scale, which cannot both hold"));
+            List<String> sizes = sizeInstructions(derivative);
+            if (sizes.size() > 1) {
+                String hold = sizes.size() == 2 ? "which cannot both hold" : "which cannot all hold";
+                problems.add(fault(path, "sets " + String.join(" and ", sizes) + ", " + hold));
             }
-            if (!hasSide && !hasScale) {
+            if (sizes.isEmpty()) {
                 fullSize += 1;
             }
 
@@ -128,6 +138,21 @@ public final class Validation {
             problems.add(note("derivatives", "has more than one derivative at full size"));
         }
         return List.copyOf(problems);
+    }
+
+    /** What a derivative says about its size, in the order a longest side, a scale and a ppi. */
+    private static List<String> sizeInstructions(Profile.Derivative derivative) {
+        List<String> out = new ArrayList<>();
+        if (derivative.longestSide().isPresent()) {
+            out.add("a longest side");
+        }
+        if (derivative.scale().isPresent()) {
+            out.add("a scale");
+        }
+        if (derivative.ppi().isPresent()) {
+            out.add("a ppi");
+        }
+        return out;
     }
 
     /** True when every aim is at least the one before it, or every aim at most the one before it. */

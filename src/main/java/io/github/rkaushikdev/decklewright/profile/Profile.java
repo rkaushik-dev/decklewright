@@ -193,13 +193,14 @@ public record Profile(
     }
 
     /**
-     * One file written from each cut. A derivative that sets neither a longest side nor a scale is
-     * written at full size.
+     * One file written from each cut. A derivative that sets none of a longest side, a scale and a
+     * sampling frequency is written at full size.
      *
      * @param name what the derivative is called, which goes into its file name
      * @param format the format it is written in
      * @param longestSide the pixels its longest side is reduced to; empty when it is not
      * @param scale the factor it is resampled by; empty when it is not
+     * @param ppi the sampling frequency it is reduced to, against the master's; empty when it is not
      * @param depth the bits per sample it is written at
      * @param layout the channels it is written with, gray or rgb
      * @param kernel the name of the resampling kernel, such as {@code catmullRom}
@@ -210,6 +211,7 @@ public record Profile(
             OutputFormat format,
             OptionalDouble longestSide,
             OptionalDouble scale,
+            OptionalDouble ppi,
             Depth depth,
             Layout layout,
             String kernel,
@@ -222,6 +224,7 @@ public record Profile(
             Objects.requireNonNull(format, "format");
             Objects.requireNonNull(longestSide, "longestSide");
             Objects.requireNonNull(scale, "scale");
+            Objects.requireNonNull(ppi, "ppi");
             Objects.requireNonNull(depth, "depth");
             Objects.requireNonNull(layout, "layout");
             Objects.requireNonNull(kernel, "kernel");
@@ -235,6 +238,7 @@ public record Profile(
             json.put("format", format);
             longestSide.ifPresent(value -> json.put("longestSide", value));
             scale.ifPresent(value -> json.put("scale", value));
+            ppi.ifPresent(value -> json.put("ppi", value));
             json.put("depth", depth);
             json.put("layout", layout);
             json.put("kernel", kernel);

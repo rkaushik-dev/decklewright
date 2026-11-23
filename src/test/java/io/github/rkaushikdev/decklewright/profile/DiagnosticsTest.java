@@ -119,6 +119,17 @@ class DiagnosticsTest {
         }
 
         @Test
+        void saysThePpiWhenOneIsSet() {
+            Profile.Derivative service = Fields.parseProfile(
+                            bag("name", "a", "derivatives", List.of(bag("name", "service", "ppi", 150.0))))
+                    .derivatives()
+                    .get(0);
+            assertThat(describeDerivative(service)).isEqualTo("service: at 150 ppi, rgb at 8 bit, png by catmullRom");
+            assertThat(service.ppi()).hasValue(150);
+            assertThat(service.toJson()).containsEntry("ppi", 150.0);
+        }
+
+        @Test
         void saysTheScaleWhenOneIsSet() {
             ProfileRegistry site = new ProfileRegistry()
                     .add(bag(

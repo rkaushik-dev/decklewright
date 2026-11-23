@@ -141,28 +141,52 @@ public final class Rendering {
     }
 
     /**
-     * The size a recipe asks for, or empty when it asks for the size it was given.
+     * The size a recipe asks for, with no sampling frequency to work a ppi out against.
      *
-     * <p>A longest side wins over a scale, and is never reached by enlarging. A scale of one asks for
-     * no change, and a longest side or a scale of zero, like one left out, asks for nothing. The size
-     * is rounded to whole pixels, halves up.
-     *
-     * @param from the size the recipe starts from
+     * @see #targetSize(Size, DerivativeRecipe, Optional)
      */
     public static Optional<Size> targetSize(Size from, DerivativeRecipe recipe) {
+        return targetSize(from, recipe, Optional.empty());
+    }
+
+    /**
+     * The size a recipe asks for, or empty when it asks for the size it was given.
+     *
+     * <p>A longest side wins over a scale and a scale over a ppi, and neither a longest side nor a
+     * ppi is ever reached by enlarging. A ppi is worked out against the coarser axis of the master,
+     * so neither axis comes out under it. A scale of one asks for no change, and any of the three at
+     * zero, like one left out, asks for nothing. The size is rounded to whole pixels, halves up.
+     *
+     * @param from the size the recipe starts from
+     * @param sampling the master's frequency, which a ppi is set against
+     * @throws BadArgumentError when the recipe asks for a ppi and there is no frequency to set it
+     *     against
+     */
+    public static Optional<Size> targetSize(Size from, DerivativeRecipe recipe, Optional<Sampling> sampling) {
         OptionalDouble longestSide = asked(recipe.longestSide());
         if (longestSide.isPresent()) {
             double longest = Math.max(from.width(), from.height());
-            if (longest <= longestSide.getAsDouble()) {
-                return Optional.empty();
-            }
-            return Optional.of(from.scaled(longestSide.getAsDouble() / longest).rounded());
+            return reduced(from, longestSide.getAsDouble() / longest);
         }
         OptionalDouble scale = asked(recipe.scale());
-        if (scale.isPresent() && scale.getAsDouble() != 1) {
-            return Optional.of(from.scaled(scale.getAsDouble()).rounded());
+        if (scale.isPresent()) {
+            return scale.getAsDouble() == 1
+                    ? Optional.empty()
+                    : Optional.of(from.scaled(scale.getAsDouble()).rounded());
+        }
+        OptionalDouble ppi = asked(recipe.ppi());
+        if (ppi.isPresent()) {
+            Sampling master = sampling.orElseThrow(() -> new BadArgumentError(
+                    "the " + recipe.name() + " derivative asks for a ppi and the master has no frequency",
+                    Map.of("derivative", recipe.name())));
+            return reduced(from, ppi.getAsDouble() / Math.min(master.x(), master.y()));
         }
         return Optional.empty();
+    }
+
+    /** The size at the factor when it is a reduction, else nothing. */
+    private static Optional<Size> reduced(Size from, double factor) {
+        return factor >= 1 ? Optional.empty() : Optional.of(from.scaled(factor).rounded());
     }
 
     /**
@@ -192,7 +216,7 @@ public final class Rendering {
             steps.add("to " + recipe.layout().label());
         }
 
-        Optional<Size> wanted = targetSize(surface.size(), recipe);
+        Optional<Size> wanted = targetSize(surface.size(), recipe, Optional.of(sampling));
         double scale = 1;
         if (wanted.isPresent()) {
             Size size = wanted.get();

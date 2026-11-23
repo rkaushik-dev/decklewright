@@ -173,6 +173,45 @@ class ValidateTest {
         }
 
         @Test
+        void namesEverySizeADerivativeSetsAtOnce() {
+            List<Problem> problems = inspectDerivatives(parseProfile(bag(
+                            "name",
+                            "a",
+                            "derivatives",
+                            list(
+                                    bag("name", "service", "longestSide", 100.0, "scale", 0.5),
+                                    bag("name", "thumb", "longestSide", 100.0, "scale", 0.5, "ppi", 50.0))))
+                    .derivatives());
+            assertThat(problems)
+                    .containsExactly(
+                            fault("derivatives[0]", "sets a longest side and a scale, which cannot both hold"),
+                            fault(
+                                    "derivatives[1]",
+                                    "sets a longest side and a scale and a ppi, which cannot all hold"));
+        }
+
+        @Test
+        void countsADerivativeAtAPpiAsReduced() {
+            List<Problem> problems = inspectDerivatives(parseProfile(bag(
+                            "name",
+                            "a",
+                            "derivatives",
+                            list(bag("name", "master"), bag("name", "service", "ppi", 150.0))))
+                    .derivatives());
+            assertThat(problems).isEmpty();
+        }
+
+        @Test
+        void notesAPpiTheCaptureCannotBeReducedTo() {
+            List<Problem> problems = inspectProfile(
+                    profile(bag("derivatives", list(bag("name", "master"), bag("name", "service", "ppi", 400.0)))));
+            assertThat(problems)
+                    .containsExactly(note(
+                            "derivatives[1].ppi",
+                            "asks for 400 ppi from a capture taken at 400, so it is written full size"));
+        }
+
+        @Test
         void notesTwoDerivativesAtFullSize() {
             List<Problem> problems = inspectDerivatives(
                     parseProfile(bag("name", "a", "derivatives", list(bag("name", "a"), bag("name", "b"))))
