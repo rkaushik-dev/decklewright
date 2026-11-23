@@ -23,6 +23,12 @@ import java.util.Set;
  * that will surprise somebody later.
  */
 public final class Validation {
+    /**
+     * The placeholders a run fills: the accession and the derivative always, and the parts of a map
+     * call number when the accession is written as one.
+     */
+    private static final List<String> FILLED = List.of("accession", "derivative", "class", "cutter", "year");
+
     private Validation() {}
 
     /** A problem that stops a run. */
@@ -93,6 +99,16 @@ public final class Validation {
 
         if (profile.derivatives().isEmpty()) {
             problems.add(note("derivatives", "is empty, so a run will plan a crop and write nothing"));
+        }
+
+        List<String> unfilled = Settings.placeholdersIn(profile.naming().pattern()).stream()
+                .filter(name -> !FILLED.contains(name))
+                .toList();
+        if (!unfilled.isEmpty()) {
+            problems.add(note(
+                    "naming.pattern",
+                    "names " + String.join(" and ", unfilled) + ", which nothing in a run fills, so it stays in every"
+                            + " file name"));
         }
 
         if (!steppingOneWay(qc.toneAims())) {

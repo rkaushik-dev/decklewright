@@ -53,9 +53,6 @@ public final class FileNames {
     /** A final extension: a dot and letters or digits, in either case, at the very end. */
     private static final Pattern EXTENSION = Pattern.compile("\\.[a-z0-9]+\\z", Pattern.CASE_INSENSITIVE);
 
-    /** A placeholder in a naming pattern, such as {@code {accession}}. */
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\{(\\w+)\\}");
-
     /** What a placeholder matches when a name is read back: the shortest run of name characters. */
     private static final String PLACEHOLDER_VALUE = "([a-zA-Z0-9._-]+?)";
 
@@ -134,7 +131,10 @@ public final class FileNames {
 
     /**
      * The name one derivative gets: the profile's naming pattern filled with the accession and the
-     * derivative name, each made a safe stem first, and the whole made a safe stem again.
+     * derivative name, each made a safe stem first, and the whole made a safe stem again. An
+     * accession written as a map call number also fills {@code class}, {@code cutter} and {@code
+     * year}, as {@link CallNumber#placeholders()} reads them, so a pattern such as {@code
+     * {class}-{year}_{derivative}} files a sheet the way the map room shelves it.
      *
      * <p>A placeholder nobody filled is left in the name, so a typo in a pattern shows up in the file
      * name instead of quietly giving two files the same one.
@@ -151,11 +151,23 @@ public final class FileNames {
         Guards.requireNonEmptyString(accession, "accession");
         Guards.requireNonEmptyString(derivative, "derivative");
 
+        return safeStem(Settings.fillName(profile, placeholdersFor(accession, derivative, extra))) + extension;
+    }
+
+    /**
+     * Every value a naming pattern can be filled with for one derivative: the call number's parts
+     * when the accession is one, then the accession and the derivative made safe stems, then the
+     * extra values, each later one winning over an earlier one of the same name.
+     *
+     * @return in a new map the caller may keep, in that order
+     */
+    public static Map<String, Object> placeholdersFor(String accession, String derivative, Map<String, ?> extra) {
         Map<String, Object> values = new LinkedHashMap<>();
+        CallNumber.read(accession).ifPresent(call -> values.putAll(call.placeholders()));
         values.put("accession", safeStem(accession));
         values.put("derivative", safeStem(derivative));
         values.putAll(extra);
-        return safeStem(Settings.fillName(profile, values)) + extension;
+        return values;
     }
 
     /**
@@ -243,7 +255,7 @@ public final class FileNames {
         String stem = EXTENSION.matcher(name).replaceFirst("");
         List<String> keys = new ArrayList<>();
         StringBuilder expression = new StringBuilder();
-        Matcher placeholders = PLACEHOLDER.matcher(profile.naming().pattern());
+        Matcher placeholders = Settings.PLACEHOLDER.matcher(profile.naming().pattern());
         int literalStart = 0;
         while (placeholders.find()) {
             appendLiteral(expression, profile.naming().pattern().substring(literalStart, placeholders.start()));

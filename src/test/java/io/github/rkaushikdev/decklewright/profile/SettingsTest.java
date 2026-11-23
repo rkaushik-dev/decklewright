@@ -250,4 +250,14 @@ class SettingsTest {
                     .containsEntry("deskewAbove", 0.2);
         }
     }
+
+    @Nested
+    class PlaceholdersIn {
+        @Test
+        void namesEachPlaceholderOnceInTheOrderFirstNamed() {
+            assertThat(Settings.placeholdersIn("{year}-{class}_{derivative}-{year}"))
+                    .containsExactly("year", "class", "derivative");
+            assertThat(Settings.placeholdersIn("plain")).isEmpty();
+        }
+    }
 }

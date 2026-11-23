@@ -119,6 +119,25 @@ class DiagnosticsTest {
         }
 
         @Test
+        void saysHowFilesAreNamedAndWhatComesOffACallNumber() {
+            assertThat(Diagnostics.describeProfile(HOUSE))
+                    .contains("names files {accession}_{derivative}, lower cased");
+            Profile shelved = Fields.parseProfile(
+                    bag("name", "a", "naming", bag("pattern", "{year}-{class}_{derivative}", "lowercase", false)));
+            assertThat(Diagnostics.describeProfile(shelved))
+                    .contains("names files {year}-{class}_{derivative}, year and class read off a map call number");
+        }
+
+        @Test
+        void countsTheToneAimsInTheQualityLine() {
+            Profile aimed = Fields.parseProfile(bag("name", "a", "qc", bag("toneAims", List.of(20, 120, 240))));
+            assertThat(Diagnostics.describeProfile(aimed)
+                            .get(Diagnostics.describeProfile(aimed).size() - 1))
+                    .endsWith(", 3 stars, 3 tone aims");
+            assertThat(Diagnostics.report(aimed, 600)).containsAll(Diagnostics.describeProfile(aimed));
+        }
+
+        @Test
         void saysThePpiWhenOneIsSet() {
             Profile.Derivative service = Fields.parseProfile(
                             bag("name", "a", "derivatives", List.of(bag("name", "service", "ppi", 150.0))))

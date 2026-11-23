@@ -21,6 +21,9 @@ import java.util.stream.Stream;
  * the same as a written one.
  */
 public final class Diagnostics {
+    /** The placeholders a run reads off an accession written as a map call number. */
+    private static final List<String> CALL_NUMBER_PARTS = List.of("class", "cutter", "year");
+
     private Diagnostics() {}
 
     /**
@@ -78,8 +81,16 @@ public final class Diagnostics {
             lines.add("writes nothing");
         }
 
+        Profile.Naming naming = profile.naming();
+        List<String> fromCall = Settings.placeholdersIn(naming.pattern()).stream()
+                .filter(CALL_NUMBER_PARTS::contains)
+                .toList();
+        lines.add("names files " + naming.pattern() + (naming.lowercase() ? ", lower cased" : "")
+                + (fromCall.isEmpty() ? "" : ", " + String.join(" and ", fromCall) + " read off a map call number"));
+
         lines.add("quality: " + NumberText.of(qc.samplingPpi()) + " ppi " + qc.samplingTolerance() + ", skew under "
-                + NumberText.of(qc.skewTolerance()) + " deg, " + qc.minimumStars() + " stars");
+                + NumberText.of(qc.skewTolerance()) + " deg, " + qc.minimumStars() + " stars"
+                + (qc.toneAims().isEmpty() ? "" : ", " + qc.toneAims().size() + " tone aims"));
         return List.copyOf(lines);
     }
 
@@ -110,8 +121,7 @@ public final class Diagnostics {
      * @see #report(Profile, double)
      */
     public static List<String> report(Profile profile) {
-        List<Problem> problems = Validation.inspectProfile(profile);
-        return joined(describeProfile(profile), describeInPixels(profile), Validation.describeProblems(problems));
+        return joined(profile, describeInPixels(profile));
     }
 
     /**
@@ -121,8 +131,7 @@ public final class Diagnostics {
      * @throws BadArgumentError when the frequency is not a finite number above zero
      */
     public static List<String> report(Profile profile, double ppi) {
-        List<Problem> problems = Validation.inspectProfile(profile);
-        return joined(describeProfile(profile), describeInPixels(profile, ppi), Validation.describeProblems(problems));
+        return joined(profile, describeInPixels(profile, ppi));
     }
 
     private static List<String> inPixels(StageSettings settings) {
@@ -157,7 +166,10 @@ public final class Diagnostics {
                 .collect(Collectors.joining("/"));
     }
 
-    private static List<String> joined(List<String> described, List<String> inPixels, List<String> problems) {
-        return Stream.of(described, inPixels, problems).flatMap(List::stream).toList();
+    private static List<String> joined(Profile profile, List<String> inPixels) {
+        List<String> problems = Validation.describeProblems(Validation.inspectProfile(profile));
+        return Stream.of(describeProfile(profile), inPixels, problems)
+                .flatMap(List::stream)
+                .toList();
     }
 }

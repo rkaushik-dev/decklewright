@@ -23,8 +23,12 @@ import java.util.regex.Pattern;
  */
 public final class Settings {
 
-    /** A placeholder in a naming pattern, such as {@code {accession}}. */
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\{(\\w+)\\}");
+    /**
+     * A placeholder in a naming pattern, such as {@code {accession}}, with its name as the first
+     * group. Filling a name and reading one back both go by it, so they cannot disagree on what a
+     * placeholder is.
+     */
+    public static final Pattern PLACEHOLDER = Pattern.compile("\\{(\\w+)\\}");
 
     private Settings() {}
 
@@ -129,6 +133,16 @@ public final class Settings {
             return Matcher.quoteReplacement(text);
         });
         return profile.naming().lowercase() ? filled.toLowerCase(Locale.ROOT) : filled;
+    }
+
+    /** Every placeholder a naming pattern names, in the order first named, each once. */
+    public static List<String> placeholdersIn(String pattern) {
+        return PLACEHOLDER
+                .matcher(pattern)
+                .results()
+                .map(match -> match.group(1))
+                .distinct()
+                .toList();
     }
 
     /** Every stage's arguments at once, at the frequency the scanner claims. */

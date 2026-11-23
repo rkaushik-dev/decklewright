@@ -88,6 +88,22 @@ class ValidateTest {
         }
 
         @Test
+        void notesAPlaceholderNothingInARunFills() {
+            List<Problem> problems =
+                    inspectProfile(profile(bag("naming", bag("pattern", "{shelf}-{accession}_{drawer}_{shelf}"))));
+            assertThat(problems)
+                    .containsExactly(note(
+                            "naming.pattern",
+                            "names shelf and drawer, which nothing in a run fills, so it stays in every file name"));
+        }
+
+        @Test
+        void takesTheCallNumberPartsAsFilled() {
+            assertThat(inspectProfile(profile(bag("naming", bag("pattern", "{class}-{cutter}-{year}_{derivative}")))))
+                    .isEmpty();
+        }
+
+        @Test
         void acceptsThePairWhenBothAreSet() {
             List<Problem> problems = inspectProfile(
                     profile(bag("crop", bag("anchor", "neatline"), "capture", bag("expectNeatline", true))));
