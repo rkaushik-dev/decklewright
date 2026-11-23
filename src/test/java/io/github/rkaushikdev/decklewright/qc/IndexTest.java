@@ -101,13 +101,16 @@ class IndexTest {
         return surface;
     }
 
-    static QcInput args(double degrees, int tint, double falloff) {
-        Surface surface = accession(degrees, tint, falloff);
+    static QcInput inputFor(Surface surface) {
         return QcInput.of(
                         surface,
                         Captures.readCapture(surface, CaptureOptions.defaults().withSigma(4)),
                         REGISTRY.get("house"))
                 .withSampling(Sampling.of(400));
+    }
+
+    static QcInput args(double degrees, int tint, double falloff) {
+        return inputFor(accession(degrees, tint, falloff));
     }
 
     /** A clean capture graded against the house profile at 400 ppi. */
@@ -227,6 +230,50 @@ class IndexTest {
         void saysWhichWayACastGoes() {
             GradedCapture out = gradeCapture(args(0, 30, 0));
             assertThat(String.join(" ", out.advice())).containsPattern("the cast is towards red");
+        }
+
+        @Test
+        void givesBothAxesWhenTheSamplingFallsShortOnOne() {
+            GradedCapture out = gradeCapture(args().withSampling(new Sampling(400, 392)));
+            assertThat(out.advice())
+                    .contains("the capture is 400.0 ppi across and 392.0 ppi down, so check the stepper as well");
+            assertThat(gradeCapture(args().withSampling(Sampling.of(392))).advice())
+                    .noneMatch(line -> line.contains("stepper"));
+        }
+
+        @Test
+        void namesTheChannelTheNoiseIsWorstIn() {
+            Surface surface = accession(0, 0, 0);
+            int seed = 11;
+            for (int y = 12; y < 26; y += 1) {
+                for (int x = 14; x < 94; x += 1) {
+                    seed = (int) (long) (seed * 1103515245.0 + 12345.0) & 0x7fffffff;
+                    double jitter = (seed % 41) - 20;
+                    surface.set(x, y, 2, Math.max(0, Math.min(255, surface.get(x, y, 2) + jitter)));
+                }
+            }
+            GradedCapture out = gradeCapture(inputFor(surface));
+            assertThat(out.result().findings().stream()
+                            .filter(finding -> finding.name().equals("noise"))
+                            .findFirst()
+                            .orElseThrow()
+                            .passed())
+                    .isFalse();
+            assertThat(out.advice()).anyMatch(line -> line.matches("the noise is worst in blue, at [0-9.]+ dB"));
+        }
+
+        @Test
+        void namesTheEdgeWithTheWidestFringe() {
+            Surface surface = accession(0, 0, 0);
+            for (int y = 0; y < surface.height(); y += 1) {
+                for (int x = surface.width() - 1; x >= 2; x -= 1) {
+                    surface.set(x, y, 2, surface.get(x - 2, y, 2));
+                }
+            }
+            GradedCapture out = gradeCapture(inputFor(surface));
+            assertThat(out.advice()).contains("channelRegistration: stop the lens down or check the back is seated");
+            assertThat(out.advice())
+                    .anyMatch(line -> line.matches("the fringe is widest on the (left|right) edge of the sheet"));
         }
 
         @Test
