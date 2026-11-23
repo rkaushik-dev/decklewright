@@ -23,6 +23,7 @@ import io.github.rkaushikdev.decklewright.qc.QcRunner;
 import io.github.rkaushikdev.decklewright.raster.Fill;
 import io.github.rkaushikdev.decklewright.raster.Layout;
 import io.github.rkaushikdev.decklewright.raster.Surface;
+import io.github.rkaushikdev.decklewright.testing.Wedges;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
@@ -30,23 +31,16 @@ import org.junit.jupiter.api.Test;
 
 class ToneResponseTest {
 
-    private static final List<Rect> PATCH_RECTS =
-            List.of(Rect.of(0, 0, 30, 30), Rect.of(30, 0, 30, 30), Rect.of(60, 0, 30, 30), Rect.of(90, 0, 30, 30));
-
-    private static final List<Double> WEDGE = List.of(40.0, 120.0, 200.0, 250.0);
-
-    static Surface wedge(List<Double> tones) {
-        Surface surface = Surface.create(120, 30, Layout.GRAY);
-        for (int i = 0; i < tones.size(); i += 1) {
-            paint(surface, PATCH_RECTS.get(i), tones.get(i));
-        }
-        return surface;
-    }
+    private static final double[] WEDGE = {40, 120, 200, 250};
 
     static QcContext aimedAt(List<Double> aims, double tolerance) {
+        return aimedAt(8, aims, tolerance);
+    }
+
+    static QcContext aimedAt(int depth, List<Double> aims, double tolerance) {
         return QcContext.empty()
-                .withSurface(wedge(WEDGE))
-                .withTarget(targetOver(PATCH_RECTS))
+                .withSurface(Wedges.paintedAt(depth, WEDGE))
+                .withTarget(Wedges.target(WEDGE.length))
                 .withLimits(LIMITS.withTone(aims, tolerance));
     }
 
@@ -83,6 +77,13 @@ class ToneResponseTest {
             List<Double> aims = List.of(40.0, 130.0, 200.0, 250.0);
             assertThat(runCheck(toneResponseCheck(), aimedAt(aims, 6)).stars()).isZero();
             assertThat(runCheck(toneResponseCheck(), aimedAt(aims, 12)).stars()).isEqualTo(2);
+        }
+
+        @Test
+        void readsASixteenBitWedgeAgainstAimsWrittenForEightBits() {
+            Finding out = runCheck(toneResponseCheck(), aimedAt(16, List.of(40.0, 124.0, 198.0, 250.0), 6));
+            assertThat(out.measured()).isCloseTo(4, org.assertj.core.api.Assertions.byLessThan(0.01));
+            assertThat(out.stars()).isEqualTo(3);
         }
 
         @Test

@@ -1,20 +1,15 @@
 package io.github.rkaushikdev.decklewright.qc;
 
-import static io.github.rkaushikdev.decklewright.testing.Bench.paint;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.rkaushikdev.decklewright.detect.Neatline;
-import io.github.rkaushikdev.decklewright.detect.Patch;
 import io.github.rkaushikdev.decklewright.detect.Side;
-import io.github.rkaushikdev.decklewright.detect.TargetFinding;
 import io.github.rkaushikdev.decklewright.geom.Rect;
 import io.github.rkaushikdev.decklewright.measure.Sampling;
 import io.github.rkaushikdev.decklewright.profile.ProfileRegistry;
 import io.github.rkaushikdev.decklewright.profile.QcLimits;
 import io.github.rkaushikdev.decklewright.profile.Settings;
-import io.github.rkaushikdev.decklewright.raster.Layout;
-import io.github.rkaushikdev.decklewright.raster.Surface;
-import java.util.ArrayList;
+import io.github.rkaushikdev.decklewright.testing.Wedges;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
@@ -24,18 +19,11 @@ class AdviceTest {
 
     private static final QcLimits HOUSE = Settings.qcLimits(new ProfileRegistry().get("house"));
 
-    /** A gray wedge of twenty pixel patches, one tone each, as a context the checks would read. */
+    /** A gray wedge as a context the checks would read. */
     static QcContext wedge(double... tones) {
-        Surface surface = Surface.create(tones.length * 20, 20, Layout.GRAY);
-        List<Patch> patches = new ArrayList<>();
-        for (int i = 0; i < tones.length; i += 1) {
-            Rect cell = Rect.of(i * 20, 0, 20, 20);
-            paint(surface, cell, tones[i]);
-            patches.add(new Patch(cell, List.of(), List.of()));
-        }
         return QcContext.empty()
-                .withSurface(surface)
-                .withTarget(new TargetFinding(Rect.empty(), patches, 0, true))
+                .withSurface(Wedges.painted(tones))
+                .withTarget(Wedges.target(tones.length))
                 .withLimits(HOUSE);
     }
 

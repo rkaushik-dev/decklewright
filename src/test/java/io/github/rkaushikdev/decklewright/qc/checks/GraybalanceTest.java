@@ -30,9 +30,19 @@ class GraybalanceTest {
 
     /** A wedge of up to four patches, one colour each. */
     static Surface wedge(double[]... colours) {
-        Surface surface = Surface.create(80, 20, Layout.RGB);
+        return wedgeAt(8, colours);
+    }
+
+    /** The same wedge at another depth, the colours written on the eight bit scale. */
+    static Surface wedgeAt(int depth, double[]... colours) {
+        Surface surface = Surface.create(80, 20, Layout.RGB, depth, 0);
+        double scale = surface.maxValue() / 255.0;
         for (int i = 0; i < colours.length; i += 1) {
-            paint(surface, PATCH_RECTS.get(i), colours[i]);
+            double[] scaled = colours[i].clone();
+            for (int c = 0; c < scaled.length; c += 1) {
+                scaled[c] *= scale;
+            }
+            paint(surface, PATCH_RECTS.get(i), scaled);
         }
         return surface;
     }
@@ -94,6 +104,15 @@ class GraybalanceTest {
             Finding out = runCheck(grayBalanceCheck(), context(mostlyNeutral, 30));
             assertThat(out.measured()).isEqualTo(20);
             assertThat(out.stars()).isEqualTo(1);
+        }
+
+        @Test
+        void readsASixteenBitCastOnTheEightBitScaleTheToleranceIsWrittenIn() {
+            Surface master = wedgeAt(16, rgb(40, 40, 40), rgb(90, 94, 90), rgb(150, 150, 150), rgb(210, 210, 210));
+            Finding out = runCheck(grayBalanceCheck(), context(master));
+            assertThat(out.measured()).isCloseTo(4, org.assertj.core.api.Assertions.byLessThan(0.01));
+            assertThat(out.stars()).isEqualTo(3);
+            assertThat(out.passed()).isTrue();
         }
 
         @Test

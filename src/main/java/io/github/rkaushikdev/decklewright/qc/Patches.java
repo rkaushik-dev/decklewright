@@ -2,7 +2,6 @@ package io.github.rkaushikdev.decklewright.qc;
 
 import io.github.rkaushikdev.decklewright.detect.Patch;
 import io.github.rkaushikdev.decklewright.geom.Rect;
-import io.github.rkaushikdev.decklewright.raster.ChannelStats;
 import io.github.rkaushikdev.decklewright.raster.Stats;
 import io.github.rkaushikdev.decklewright.raster.Surface;
 import io.github.rkaushikdev.decklewright.raster.SurfaceView;
@@ -36,6 +35,9 @@ public final class Patches {
 
     /** The share of the range below which a patch is too dark to measure variation on. */
     private static final double FLAT_FLOOR = 0.25;
+
+    /** The top of the eight bit scale. */
+    private static final double EIGHT_BIT = 255;
 
     private Patches() {}
 
@@ -77,16 +79,27 @@ public final class Patches {
     }
 
     /**
-     * The mean of every channel over a patch, with the given share left off each side.
+     * The mean of every channel over a patch, with the given share left off each side, on the eight
+     * bit scale the profile's tone limits are written in.
      *
      * @return one mean per channel, in channel order; empty when the patch could not be read
      */
     public static double[] channelMeans(Surface surface, Rect rect, double margin) {
         return patchView(surface, rect, margin)
                 .map(view -> Stats.allChannelStats(view).stream()
-                        .mapToDouble(ChannelStats::mean)
+                        .mapToDouble(stats -> onEightBitScale(stats.mean(), surface))
                         .toArray())
                 .orElseGet(() -> new double[0]);
+    }
+
+    /**
+     * A sample value of the capture on the eight bit scale, which is the scale a curator writes a
+     * gray balance tolerance or a tone aim on whatever depth the stand captures at. A sixteen bit
+     * master read raw would put a six value cast at a ten thousandth of a percent and fail every
+     * patch against an aim written for eight bits.
+     */
+    public static double onEightBitScale(double value, Surface surface) {
+        return value * EIGHT_BIT / surface.maxValue();
     }
 
     /**

@@ -5,7 +5,6 @@ import static io.github.rkaushikdev.decklewright.qc.checks.TestContexts.targetOv
 import static io.github.rkaushikdev.decklewright.qc.checks.WedgeSteps.STEPS_LADDER;
 import static io.github.rkaushikdev.decklewright.qc.checks.WedgeSteps.lostSteps;
 import static io.github.rkaushikdev.decklewright.qc.checks.WedgeSteps.wedgeStepsCheck;
-import static io.github.rkaushikdev.decklewright.testing.Bench.paint;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.rkaushikdev.decklewright.detect.Patch;
@@ -13,30 +12,20 @@ import io.github.rkaushikdev.decklewright.geom.Rect;
 import io.github.rkaushikdev.decklewright.qc.Finding;
 import io.github.rkaushikdev.decklewright.qc.QcContext;
 import io.github.rkaushikdev.decklewright.qc.Rung;
-import io.github.rkaushikdev.decklewright.raster.Layout;
 import io.github.rkaushikdev.decklewright.raster.Surface;
-import java.util.ArrayList;
+import io.github.rkaushikdev.decklewright.testing.Wedges;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class WedgeStepsTest {
 
-    static List<Rect> cells(int count) {
-        List<Rect> out = new ArrayList<>();
-        for (int i = 0; i < count; i += 1) {
-            out.add(Rect.of(i * 20, 0, 20, 20));
-        }
-        return out;
+    static QcContext wedge(double... tones) {
+        return wedgeAt(8, tones);
     }
 
-    static QcContext wedge(double... tones) {
-        Surface surface = Surface.create(tones.length * 20, 20, Layout.GRAY);
-        List<Rect> rects = cells(tones.length);
-        for (int i = 0; i < tones.length; i += 1) {
-            paint(surface, rects.get(i), tones[i]);
-        }
-        return QcContext.empty().withSurface(surface).withTarget(targetOver(rects));
+    static QcContext wedgeAt(int depth, double... tones) {
+        return QcContext.empty().withSurface(Wedges.paintedAt(depth, tones)).withTarget(Wedges.target(tones.length));
     }
 
     @Nested
@@ -99,6 +88,16 @@ class WedgeStepsTest {
             Finding out = runCheck(wedgeStepsCheck(), off);
             assertThat(out.stars()).isZero();
             assertThat(out.note()).isEqualTo("patch 3 of the wedge could not be read");
+        }
+
+        @Test
+        void holdsASixteenBitWedgeToTheSameOneValueGapAsAnEightBitOne() {
+            // half a value apart on the eight bit scale is 128 apart in sixteen bits, still one step
+            Finding out = runCheck(wedgeStepsCheck(), wedgeAt(16, 20, 20.5, 120, 220));
+            assertThat(out.measured()).isEqualTo(1);
+            assertThat(runCheck(wedgeStepsCheck(), wedgeAt(16, 20, 60, 120, 220))
+                            .measured())
+                    .isZero();
         }
 
         @Test

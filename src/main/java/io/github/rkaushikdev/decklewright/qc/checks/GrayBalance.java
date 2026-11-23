@@ -50,7 +50,7 @@ public final class GrayBalance {
     /**
      * The worst neutral error over the target's patches, each read over its inner part, held to the
      * profile's gray balance tolerance. A grayscale capture cannot have a cast and gets four stars.
-     * The measurement is in sample values.
+     * The measurement is in sample values on the eight bit scale.
      */
     public static Check grayBalanceCheck() {
         return Check.of("grayBalance", List.of(Need.SURFACE, Need.TARGET, Need.LIMITS), GrayBalance::measure);

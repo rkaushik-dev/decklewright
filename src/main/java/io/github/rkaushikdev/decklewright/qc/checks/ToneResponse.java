@@ -76,8 +76,8 @@ public final class ToneResponse {
     }
 
     /**
-     * The tone of one patch and how much it varies, both over the inner part of the patch and both
-     * the mean over its colour channels.
+     * The tone of one patch and how much it varies, both over the inner part of the patch, both the
+     * mean over its colour channels and both on the eight bit scale whatever the capture's depth.
      *
      * @return empty when nothing of the patch is on the capture
      */
@@ -91,8 +91,8 @@ public final class ToneResponse {
         double spread = 0;
         for (int c = 0; c < colours; c += 1) {
             ChannelStats stats = Stats.channelStats(view.get(), c);
-            tone += stats.mean();
-            spread += stats.stdDev();
+            tone += Patches.onEightBitScale(stats.mean(), surface);
+            spread += Patches.onEightBitScale(stats.stdDev(), surface);
         }
         return Optional.of(new PatchTone(tone / colours, spread / colours));
     }
