@@ -6,6 +6,7 @@ import io.github.rkaushikdev.decklewright.qc.QcResult;
 import io.github.rkaushikdev.decklewright.store.Folder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -28,9 +29,10 @@ public final class Policies {
     /**
      * The one a lab gets if it says nothing: three stars and above go out, ungraded work and a second
      * delivery of an accession are held, more than three warnings are held, a failure does not stop
-     * the batch, and a disputed {@code skewAgreement} is held whatever the stars.
+     * the batch, a disputed {@code skewAgreement} is held whatever the stars, and no check is held to
+     * a floor of its own.
      */
-    public static final Policy HOUSE_POLICY = new Policy(3, false, false, 3, false, List.of("skewAgreement"));
+    public static final Policy HOUSE_POLICY = new Policy(3, false, false, 3, false, List.of("skewAgreement"), Map.of());
 
     private Policies() {}
 
@@ -65,56 +67,113 @@ public final class Policies {
      * delivers it. A required check that could not be measured holds it, and so does a check on the
      * policy's hold list that ran and came in under the level, whatever the stars: the cases that
      * reach a person are the ones where the measurements disagree with each other rather than the
-     * ones where they agree that something is bad. Then work under the level is rejected, before the
-     * warnings are counted, because bad work is bad either way, and work with more warnings than the
-     * policy allows is held. Everything else is delivered.
+     * ones where they agree that something is bad. Then work under the level is rejected, and so is
+     * work with a check under a floor the policy holds that check to, both before the warnings are
+     * counted, because bad work is bad either way, and work with more warnings than the policy allows
+     * is held. Everything else is delivered.
      */
     public static Decision decide(DecisionInput input, Policy rules) {
-        if (input.alreadyThere() && !rules.overwrite()) {
-            return new Decision(Verdict.HOLD, "this accession has already been delivered", Folder.WORKING);
+        for (Question question : QUESTIONS) {
+            Optional<Decision> settled = question.ask(input, rules);
+            if (settled.isPresent()) {
+                return settled.get();
+            }
         }
-
-        Optional<QcResult> graded = input.quality();
-        if (graded.isEmpty()) {
-            return rules.deliverUngraded()
-                    ? new Decision(Verdict.DELIVER, "nothing was graded and the policy allows it", Folder.DELIVERED)
-                    : new Decision(Verdict.HOLD, "nothing was graded", Folder.WORKING);
-        }
-        QcResult quality = graded.orElseThrow();
-
-        if (!quality.missing().isEmpty()) {
-            return new Decision(
-                    Verdict.HOLD, String.join(" and ", quality.missing()) + " could not be measured", Folder.WORKING);
-        }
-
-        List<String> disputed = rules.holdOn().stream()
-                .filter(name -> quality.findings().stream()
-                        .filter(finding -> finding.name().equals(name))
-                        .findFirst()
-                        .filter(Finding::ran)
-                        .filter(finding -> finding.stars() < rules.minimumStars())
-                        .isPresent())
-                .toList();
-        if (!disputed.isEmpty()) {
-            return new Decision(
-                    Verdict.HOLD,
-                    String.join(" and ", disputed) + " says somebody should look at this",
-                    Folder.WORKING);
-        }
-
-        if (quality.stars() < rules.minimumStars()) {
-            String reason = quality.stars() + " of " + rules.minimumStars() + " stars, held down by "
-                    + quality.worst().orElse("nothing named");
-            return new Decision(Verdict.REJECT, reason, Folder.REJECTED);
-        }
-
-        int warnings = input.warnings().size();
-        if (warnings > rules.maximumWarnings()) {
-            String reason = warnings + " warnings, more than the " + rules.maximumWarnings() + " this lab allows";
-            return new Decision(Verdict.HOLD, reason, Folder.WORKING);
-        }
-
+        QcResult quality = input.quality().orElseThrow();
         return new Decision(Verdict.DELIVER, quality.stars() + " of 4 stars", Folder.DELIVERED);
+    }
+
+    /** One of the questions a finished job is put to; empty when it does not settle the job. */
+    @FunctionalInterface
+    private interface Question {
+        Optional<Decision> ask(DecisionInput input, Policy rules);
+    }
+
+    /** The questions, in the order {@link #decide(DecisionInput, Policy)} asks them. */
+    private static final List<Question> QUESTIONS = List.of(
+            Policies::alreadyThere,
+            Policies::ungraded,
+            Policies::unmeasured,
+            Policies::disputed,
+            Policies::underLevel,
+            Policies::underFloor,
+            Policies::tooManyWarnings);
+
+    private static Optional<Decision> alreadyThere(DecisionInput input, Policy rules) {
+        return input.alreadyThere() && !rules.overwrite()
+                ? Optional.of(new Decision(Verdict.HOLD, "this accession has already been delivered", Folder.WORKING))
+                : Optional.empty();
+    }
+
+    private static Optional<Decision> ungraded(DecisionInput input, Policy rules) {
+        if (input.quality().isPresent()) {
+            return Optional.empty();
+        }
+        return Optional.of(
+                rules.deliverUngraded()
+                        ? new Decision(Verdict.DELIVER, "nothing was graded and the policy allows it", Folder.DELIVERED)
+                        : new Decision(Verdict.HOLD, "nothing was graded", Folder.WORKING));
+    }
+
+    private static Optional<Decision> unmeasured(DecisionInput input, Policy rules) {
+        List<String> missing = input.quality().orElseThrow().missing();
+        return missing.isEmpty()
+                ? Optional.empty()
+                : Optional.of(new Decision(
+                        Verdict.HOLD, String.join(" and ", missing) + " could not be measured", Folder.WORKING));
+    }
+
+    private static Optional<Decision> disputed(DecisionInput input, Policy rules) {
+        QcResult quality = input.quality().orElseThrow();
+        List<String> disputed = rules.holdOn().stream()
+                .filter(name -> ranUnder(quality, name, rules.minimumStars()))
+                .toList();
+        return disputed.isEmpty()
+                ? Optional.empty()
+                : Optional.of(new Decision(
+                        Verdict.HOLD,
+                        String.join(" and ", disputed) + " says somebody should look at this",
+                        Folder.WORKING));
+    }
+
+    private static Optional<Decision> underLevel(DecisionInput input, Policy rules) {
+        QcResult quality = input.quality().orElseThrow();
+        if (quality.stars() >= rules.minimumStars()) {
+            return Optional.empty();
+        }
+        String reason = quality.stars() + " of " + rules.minimumStars() + " stars, held down by "
+                + quality.worst().orElse("nothing named");
+        return Optional.of(new Decision(Verdict.REJECT, reason, Folder.REJECTED));
+    }
+
+    private static Optional<Decision> underFloor(DecisionInput input, Policy rules) {
+        QcResult quality = input.quality().orElseThrow();
+        List<String> under = rules.floors().entrySet().stream()
+                .filter(floor -> ranUnder(quality, floor.getKey(), floor.getValue()))
+                .map(floor -> floor.getKey() + " under the " + floor.getValue() + " stars this lab holds it to")
+                .toList();
+        return under.isEmpty()
+                ? Optional.empty()
+                : Optional.of(new Decision(Verdict.REJECT, String.join(" and ", under), Folder.REJECTED));
+    }
+
+    private static Optional<Decision> tooManyWarnings(DecisionInput input, Policy rules) {
+        int warnings = input.warnings().size();
+        if (warnings <= rules.maximumWarnings()) {
+            return Optional.empty();
+        }
+        String reason = warnings + " warnings, more than the " + rules.maximumWarnings() + " this lab allows";
+        return Optional.of(new Decision(Verdict.HOLD, reason, Folder.WORKING));
+    }
+
+    /** True when the first finding of the name ran and came in under the level. */
+    private static boolean ranUnder(QcResult quality, String name, int level) {
+        return quality.findings().stream()
+                .filter(finding -> finding.name().equals(name))
+                .findFirst()
+                .filter(Finding::ran)
+                .filter(finding -> finding.stars() < level)
+                .isPresent();
     }
 
     /** Whether a batch carries on after a job failed: always, unless the policy stops on a failure. */
@@ -132,6 +191,7 @@ public final class Policies {
         if (!rules.holdOn().isEmpty()) {
             lines.add("holds on " + String.join(", ", rules.holdOn()));
         }
+        rules.floors().forEach((check, stars) -> lines.add("rejects " + check + " under " + stars + " stars"));
         lines.add(rules.stopOnFailure() ? "stops the batch on a failure" : "carries on past a failure");
         return List.copyOf(lines);
     }

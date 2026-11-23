@@ -1,5 +1,6 @@
 package io.github.rkaushikdev.decklewright.cli.commands;
 
+import io.github.rkaushikdev.decklewright.BadArgumentError;
 import io.github.rkaushikdev.decklewright.DeckleError;
 import io.github.rkaushikdev.decklewright.cli.Args;
 import io.github.rkaushikdev.decklewright.cli.OptionSpec;
@@ -46,6 +47,10 @@ public final class BatchCommand implements Command {
                     "force",
                     OptionSpec.flag("replace a delivery that is already there").withLetter('f')),
             Map.entry("stop", OptionSpec.flag("stop the whole shift at the first failure")),
+            Map.entry(
+                    "floor",
+                    OptionSpec.string("hold one check to its own level, as check=stars, may repeat")
+                            .repeated()),
             Map.entry(
                     "quiet",
                     OptionSpec.flag("one line per accession rather than one per stage")
@@ -102,6 +107,9 @@ public final class BatchCommand implements Command {
                 rules = rules.withMinimumStars(stars.getAsDouble());
             }
             rules = rules.withOverwrite(args.flag("force")).withStopOnFailure(args.flag("stop"));
+            for (String floor : args.strings("floor")) {
+                rules = withFloor(rules, floor);
+            }
 
             List<IncomingCapture> waiting = workspace.incoming();
             if (waiting.isEmpty()) {
@@ -146,6 +154,21 @@ public final class BatchCommand implements Command {
         } catch (DeckleError caught) {
             return Common.report(sink, caught);
         }
+    }
+
+    /**
+     * The policy holding one more check to a level of its own, read off {@code check=stars}.
+     *
+     * @throws BadArgumentError when the text is not a check name, an equals sign and a number
+     */
+    private static Policy withFloor(Policy rules, String written) {
+        int at = written.indexOf('=');
+        String check = at < 0 ? "" : written.substring(0, at).strip();
+        String stars = at < 0 ? "" : written.substring(at + 1).strip();
+        if (check.isEmpty() || !stars.matches("[0-9]+")) {
+            throw new BadArgumentError("a floor is written check=stars, such as sharpness=4", Map.of("floor", written));
+        }
+        return rules.withFloor(check, Double.parseDouble(stars));
     }
 
     /**

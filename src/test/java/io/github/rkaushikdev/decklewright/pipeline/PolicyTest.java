@@ -259,6 +259,68 @@ class PolicyTest {
     }
 
     @Nested
+    class Floors {
+        private final Policy sharp = Policies.policy().withFloor("sharpness", 4);
+
+        @Test
+        void rejectsACheckUnderItsOwnFloorThoughTheLevelIsMet() {
+            QcResult graded =
+                    grading(3, null, List.of(), List.of(finding("sharpness", true, 3), finding("noise", true, 3)));
+            Decision out = Policies.decide(DecisionInput.graded(graded), sharp);
+            assertThat(out.decision()).isEqualTo(Verdict.REJECT);
+            assertThat(out.reason()).isEqualTo("sharpness under the 4 stars this lab holds it to");
+            assertThat(out.folder()).isEqualTo(Folder.REJECTED);
+        }
+
+        @Test
+        void deliversWhenTheCheckReachesItsFloor() {
+            QcResult graded =
+                    grading(3, null, List.of(), List.of(finding("sharpness", true, 4), finding("noise", true, 3)));
+            assertThat(Policies.decide(DecisionInput.graded(graded), sharp).decision())
+                    .isEqualTo(Verdict.DELIVER);
+        }
+
+        @Test
+        void passesOverACheckThatDidNotRun() {
+            QcResult graded = grading(3, null, List.of(), List.of(finding("sharpness", false, 0)));
+            assertThat(Policies.decide(DecisionInput.graded(graded), sharp).decision())
+                    .isEqualTo(Verdict.DELIVER);
+        }
+
+        @Test
+        void namesTheLevelFirstWhenTheWholeCaptureFallsShort() {
+            QcResult graded =
+                    grading(2, "noise", List.of(), List.of(finding("sharpness", true, 3), finding("noise", true, 2)));
+            assertThat(Policies.decide(DecisionInput.graded(graded), sharp).reason())
+                    .isEqualTo("2 of 3 stars, held down by noise");
+        }
+
+        @Test
+        void namesEveryCheckUnderItsFloor() {
+            Policy both = sharp.withFloor("noise", 4);
+            QcResult graded =
+                    grading(3, null, List.of(), List.of(finding("sharpness", true, 3), finding("noise", true, 3)));
+            assertThat(Policies.decide(DecisionInput.graded(graded), both).reason())
+                    .isEqualTo("sharpness under the 4 stars this lab holds it to and noise under the 4 stars this lab"
+                            + " holds it to");
+        }
+
+        @Test
+        void areCheckedAsTheyAreMadeAndFrozen() {
+            assertThatThrownBy(() -> Policies.policy().withFloor("sharpness", 5))
+                    .isInstanceOf(PipelineError.class);
+            assertThatThrownBy(() -> sharp.floors().put("noise", 2)).isInstanceOf(UnsupportedOperationException.class);
+            assertThat(sharp.withMinimumStars(2).floors()).containsEntry("sharpness", 4);
+            assertThat(Policies.HOUSE_POLICY.floors()).isEmpty();
+        }
+
+        @Test
+        void areSaidInWords() {
+            assertThat(Policies.describePolicy(sharp)).contains("rejects sharpness under 4 stars");
+        }
+    }
+
+    @Nested
     class DescribePolicy {
         @Test
         void saysWhatTheLabDoesInWords() {

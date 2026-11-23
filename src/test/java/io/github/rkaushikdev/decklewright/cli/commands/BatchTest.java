@@ -153,6 +153,20 @@ class BatchTest {
         }
 
         @Test
+        void holdsACheckToTheFloorItIsGiven(@TempDir Path dir) {
+            Path root = workspaceWith(dir, files("g4181.png", Console.capturePng()));
+            Ran ran = invoke(BATCH, root.toString(), "-r", "400", "-q", "--floor", "sharpness=5");
+            assertThat(ran.code()).isEqualTo(1);
+            assertThat(ran.errText()).containsPattern("star level is a whole number");
+
+            Ran strict =
+                    invoke(BATCH, root.toString(), "-r", "400", "-q", "--floor", "skewAgreement = 4", "--floor", "x");
+            assertThat(strict.code()).isEqualTo(1);
+            assertThat(strict.err().get(0)).isEqualTo("a floor is written check=stars, such as sharpness=4");
+            assertThat(Console.namesIn(root.resolve("delivered"))).isEmpty();
+        }
+
+        @Test
         void saysSoWhenNothingIsWaiting(@TempDir Path dir) {
             Path root = workspaceWith(dir, files());
             Ran ran = invoke(BATCH, root.toString());
