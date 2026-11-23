@@ -13,6 +13,7 @@ import static io.github.rkaushikdev.decklewright.profile.Settings.settingsFor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.byLessThan;
 
+import io.github.rkaushikdev.decklewright.geom.Angle;
 import io.github.rkaushikdev.decklewright.geom.AspectDirection;
 import io.github.rkaushikdev.decklewright.geom.Insets;
 import io.github.rkaushikdev.decklewright.geom.RoundPolicy;
@@ -213,6 +214,40 @@ class SettingsTest {
             StageSettings settings = settingsFor(QUADS, Sampling.of(300));
             assertThat(settings.sampling().x()).isEqualTo(300);
             assertThat(settings.crop().bleed().bottom()).isCloseTo((38 / 25.4) * 300, byLessThan(0.5e-6));
+        }
+    }
+
+    @Nested
+    class TurnFor {
+        private CropOptions crop(Map<String, Object> written) {
+            return cropOptions(Fields.parseProfile(bag("name", "atlas", "crop", written)), Sampling.of(400));
+        }
+
+        @Test
+        void takesOutTheWholeSkewByDefault() {
+            assertThat(crop(bag()).turnFor(Angle.degrees(0.05)).degrees()).isEqualTo(0.05);
+        }
+
+        @Test
+        void leavesASheetInsideTheThresholdAsItLiesEitherWay() {
+            CropOptions lenient = crop(bag("deskewAbove", 0.2));
+            assertThat(lenient.turnFor(Angle.degrees(0.2)).isZero()).isTrue();
+            assertThat(lenient.turnFor(Angle.degrees(-0.15)).isZero()).isTrue();
+            assertThat(lenient.turnFor(Angle.degrees(-0.25)).degrees()).isEqualTo(-0.25);
+        }
+
+        @Test
+        void neverTurnsACropThatDoesNotDeskew() {
+            assertThat(crop(bag("deskew", false)).turnFor(Angle.degrees(3)).isZero())
+                    .isTrue();
+        }
+
+        @Test
+        void carriesTheThresholdIntoTheJson() {
+            assertThat(Fields.parseProfile(bag("name", "atlas", "crop", bag("deskewAbove", 0.2)))
+                            .crop()
+                            .toJson())
+                    .containsEntry("deskewAbove", 0.2);
         }
     }
 }

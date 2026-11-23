@@ -112,7 +112,7 @@ public final class CropPlanner {
                         "there is no sampling frequency to plan against", Map.of("profile", profile.name())));
 
         CropOptions crop = Settings.cropOptions(profile, frequency);
-        Angle skew = crop.deskew() ? reading.sheet().skew() : Angle.zero();
+        Angle skew = crop.turnFor(reading.sheet().skew());
 
         Straightened sheetMoved = pointsIntoStraightFrame(reading.sheet().quad().corners(), capture, skew);
         Optional<Rect> neatline = reading.neatline()

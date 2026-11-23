@@ -69,6 +69,24 @@ class ValidateTest {
         }
 
         @Test
+        void notesAStraighteningThresholdOnACropThatNeverStraightens() {
+            List<Problem> problems = inspectProfile(profile(bag("crop", bag("deskew", false, "deskewAbove", 0.1))));
+            assertThat(problems)
+                    .containsExactly(note("crop.deskewAbove", "has no effect, the crop never straightens a sheet"));
+        }
+
+        @Test
+        void notesAThresholdThatLeavesSheetsTheSkewCheckWillMarkDown() {
+            List<Problem> problems = inspectProfile(profile(bag("crop", bag("deskewAbove", 0.5))));
+            assertThat(problems)
+                    .containsExactly(note(
+                            "crop.deskewAbove",
+                            "leaves sheets up to 0.5 deg off square, past the 0.3 the skew check allows"));
+            assertThat(inspectProfile(profile(bag("crop", bag("deskewAbove", 0.3)))))
+                    .isEmpty();
+        }
+
+        @Test
         void acceptsThePairWhenBothAreSet() {
             List<Problem> problems = inspectProfile(
                     profile(bag("crop", bag("anchor", "neatline"), "capture", bag("expectNeatline", true))));

@@ -19,11 +19,13 @@ import io.github.rkaushikdev.decklewright.geom.Point;
 import io.github.rkaushikdev.decklewright.geom.Rect;
 import io.github.rkaushikdev.decklewright.measure.Sampling;
 import io.github.rkaushikdev.decklewright.profile.Profile;
+import io.github.rkaushikdev.decklewright.profile.ProfileLoader;
 import io.github.rkaushikdev.decklewright.profile.ProfileRegistry;
 import io.github.rkaushikdev.decklewright.raster.Surface;
 import io.github.rkaushikdev.decklewright.testing.Bench;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -204,6 +206,31 @@ class CropTest {
         void recordsTheSkewItWillTakeOut() {
             PlannedCrop out = plan("house", 5);
             assertThat(Math.abs(out.plan().deskew().degrees() - 5)).isLessThan(1);
+        }
+
+        @Test
+        void cutsASheetAsItLiesWhenItIsInsideWhatTheProfileLeavesAlone() {
+            Profile lenient = ProfileLoader.loadProfile(
+                    Map.of("name", "lenient", "extends", "house", "crop", Map.of("deskewAbove", 6)), REGISTRY);
+            Surface surface = accession(5, false);
+            CaptureReading reading = Captures.readCapture(surface, SIGMA_4);
+            PlannedCrop out =
+                    planCrop(reading, lenient, surface.bounds(), Optional.of(Sampling.of(400)), PlanOptions.defaults());
+            assertThat(out.plan().deskew().isZero()).isTrue();
+            assertThat(out.plan().rect().width())
+                    .isGreaterThan(plan("house", 5).plan().rect().width());
+        }
+
+        @Test
+        void stillStraightensASheetPastWhatTheProfileLeavesAlone() {
+            Profile lenient = ProfileLoader.loadProfile(
+                    Map.of("name", "lenient", "extends", "house", "crop", Map.of("deskewAbove", 4)), REGISTRY);
+            Surface surface = accession(5, false);
+            CaptureReading reading = Captures.readCapture(surface, SIGMA_4);
+            PlannedCrop out =
+                    planCrop(reading, lenient, surface.bounds(), Optional.of(Sampling.of(400)), PlanOptions.defaults());
+            assertThat(out.plan().deskew().degrees())
+                    .isEqualTo(reading.sheet().skew().degrees());
         }
 
         @Test

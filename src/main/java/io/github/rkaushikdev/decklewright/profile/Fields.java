@@ -179,6 +179,7 @@ public final class Fields {
                 "background",
                 number(bounded().withMin(0).withMax(65535).withInteger(true).withFallback(0.0)));
         fields.put("deskew", flag(fallback(true)));
+        fields.put("deskewAbove", number(bounded().withMin(0).withMax(45).withFallback(0.0)));
         return fields;
     }
 
@@ -280,7 +281,8 @@ public final class Fields {
                 SnapDirection.parse((String) read.get("snapDirection")),
                 RoundPolicy.parse((String) read.get("rounding")),
                 wholeAt(read, "background"),
-                (Boolean) read.get("deskew"));
+                (Boolean) read.get("deskew"),
+                numberAt(read, "deskewAbove"));
     }
 
     private static Profile.Derivative toDerivative(Map<?, ?> read) {

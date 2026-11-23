@@ -77,7 +77,8 @@ public final class Settings {
                 crop.snapDirection(),
                 crop.rounding(),
                 crop.background(),
-                crop.deskew());
+                crop.deskew(),
+                crop.deskewAbove());
     }
 
     /** What the derive stage takes, one recipe per derivative in the order written. */

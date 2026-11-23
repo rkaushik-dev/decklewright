@@ -173,18 +173,9 @@ class RulesetTest {
         @Test
         void warnsByDefaultAndStopsWhenStrict() {
             CropOptions house = cropFor("house");
-            CropOptions crop = new CropOptions(
-                    house.anchor(),
-                    house.bleed(),
-                    house.safeArea(),
-                    house.aspect(),
-                    house.aspectDirection(),
-                    800,
-                    house.snapTo(),
-                    house.snapDirection(),
-                    house.rounding(),
-                    house.background(),
-                    house.deskew());
+            CropOptions crop = house.withMinimumPpi(800);
+            assertThat(crop.deskew()).isEqualTo(house.deskew());
+            assertThat(crop.bleed()).isEqualTo(house.bleed());
             CropPlan warn = planWith(rulesFor(crop, Landmarks.of(SHEET)), input(SHEET, 400));
             assertThat(String.join(" ", warn.warnings())).containsPattern("against a floor of 800");
 

@@ -48,6 +48,16 @@ public final class Validation {
             problems.add(note("capture.expectNeatline", "looks for a neatline that the crop ignores"));
         }
 
+        if (crop.deskewAbove() > 0 && !crop.deskew()) {
+            problems.add(note("crop.deskewAbove", "has no effect, the crop never straightens a sheet"));
+        }
+        if (crop.deskew() && crop.deskewAbove() > qc.skewTolerance()) {
+            problems.add(note(
+                    "crop.deskewAbove",
+                    "leaves sheets up to " + NumberText.of(crop.deskewAbove()) + " deg off square, past the "
+                            + NumberText.of(qc.skewTolerance()) + " the skew check allows"));
+        }
+
         if (crop.minimumPpi() > qc.samplingPpi()) {
             problems.add(fault(
                     "crop.minimumPpi",

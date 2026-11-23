@@ -143,6 +143,8 @@ public record Profile(
      * @param rounding how a crop is made whole pixels
      * @param background the sample value that fills whatever a crop takes from outside the capture
      * @param deskew true when the sheet is straightened before it is cut
+     * @param deskewAbove the skew, in degrees, a sheet has to exceed before it is straightened; zero
+     *     straightens every sheet that is off square at all
      */
     public record Crop(
             Anchor anchor,
@@ -155,7 +157,8 @@ public record Profile(
             SnapDirection snapDirection,
             RoundPolicy rounding,
             int background,
-            boolean deskew)
+            boolean deskew,
+            double deskewAbove)
             implements JsonValue {
 
         /** Crop settings of the given values. */
@@ -184,6 +187,7 @@ public record Profile(
             json.put("rounding", rounding);
             json.put("background", (double) background);
             json.put("deskew", deskew);
+            json.put("deskewAbove", deskewAbove);
             return json;
         }
     }
