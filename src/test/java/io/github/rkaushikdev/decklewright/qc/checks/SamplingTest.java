@@ -81,6 +81,53 @@ class SamplingTest {
     }
 
     @Nested
+    class OnTwoAxes {
+        QcContext sampled(double across, double down) {
+            return context().withSampling(new Sampling(across, down));
+        }
+
+        @Test
+        void gradesTheAxisFurthestOff() {
+            Finding out = runCheck(samplingCheck(), sampled(600, 606));
+            assertThat(out.stars()).isEqualTo(3);
+            assertThat(out.measured()).isEqualTo(606);
+            assertThat(out.note()).isEqualTo("606 ppi down against 600, off by 1.00 percent");
+        }
+
+        @Test
+        void readsAcrossWhenThatIsTheWorseAxis() {
+            Finding out = runCheck(samplingCheck(), sampled(594, 598));
+            assertThat(out.measured()).isEqualTo(594);
+            assertThat(out.note()).startsWith("594 ppi across against 600");
+        }
+
+        @Test
+        void holdsEveryAxisToTheProfileTolerance() {
+            Finding out = runCheck(samplingCheck(), sampled(600, 607));
+            assertThat(out.stars()).isZero();
+            assertThat(out.passed()).isFalse();
+        }
+
+        @Test
+        void takesAcrossOnATie() {
+            assertThat(runCheck(samplingCheck(), sampled(603, 597)).note()).startsWith("603 ppi across");
+        }
+
+        @Test
+        void holdsTheFloorToTheShorterAxis() {
+            Finding out = runCheck(samplingFloorCheck(), sampled(620, 588));
+            assertThat(out.stars()).isEqualTo(2);
+            assertThat(out.measured()).isEqualTo(588);
+            assertThat(out.note()).isEqualTo("588 ppi down, 2.00 percent short of 600");
+        }
+
+        @Test
+        void saysNothingOfTheAxisForASquareCapture() {
+            assertThat(runCheck(samplingFloorCheck(), at(594)).note()).isEqualTo("594 ppi, 1.00 percent short of 600");
+        }
+    }
+
+    @Nested
     class SamplingFloorCheck {
         @Test
         void givesFullStarsForAnythingAtOrAboveTheTarget() {

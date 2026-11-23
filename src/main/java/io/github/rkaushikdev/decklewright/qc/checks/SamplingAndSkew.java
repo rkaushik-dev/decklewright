@@ -2,6 +2,8 @@ package io.github.rkaushikdev.decklewright.qc.checks;
 
 import static io.github.rkaushikdev.decklewright.qc.Check.starsFor;
 
+import io.github.rkaushikdev.decklewright.measure.Axis;
+import io.github.rkaushikdev.decklewright.measure.Sampling;
 import io.github.rkaushikdev.decklewright.profile.QcLimits;
 import io.github.rkaushikdev.decklewright.qc.Check;
 import io.github.rkaushikdev.decklewright.qc.Measurement;
@@ -11,6 +13,8 @@ import io.github.rkaushikdev.decklewright.qc.Rung;
 import io.github.rkaushikdev.decklewright.util.Num;
 import io.github.rkaushikdev.decklewright.util.NumberText;
 import java.util.List;
+import java.util.function.ToDoubleFunction;
+import java.util.stream.Stream;
 
 /**
  * Sampling frequency and skew: the two checks that read a number somebody else already measured.
@@ -40,7 +44,9 @@ public final class SamplingAndSkew {
     /**
      * The frequency against the one the profile states. It is symmetric, since too fine is as wrong
      * as too coarse against a target, and a capture outside the profile's own tolerance gets no stars
-     * whatever the ladder says. The measurement is the frequency across, in ppi.
+     * whatever the ladder says. Both axes are held to it and the one furthest off is graded, so the
+     * measurement is the frequency on that axis, in ppi, and the note says which axis it was when the
+     * capture is not sampled alike both ways.
      */
     public static Check samplingCheck() {
         return Check.of("sampling", List.of(Need.SAMPLING, Need.LIMITS), SamplingAndSkew::measureSampling);
@@ -49,7 +55,8 @@ public final class SamplingAndSkew {
     /**
      * A capture below the stated frequency is worse than one above it, because detail that was never
      * sampled cannot be got back and detail sampled too finely only costs disk. The ladder is one
-     * sided for that reason. The measurement is the frequency across, in ppi.
+     * sided for that reason. The shorter axis is the one graded, and the measurement is its frequency,
+     * in ppi.
      */
     public static Check samplingFloorCheck() {
         return Check.of("samplingFloor", List.of(Need.SAMPLING, Need.LIMITS), SamplingAndSkew::measureFloor);
@@ -74,29 +81,63 @@ public final class SamplingAndSkew {
 
     private static Measurement measureSampling(QcContext context) {
         QcLimits limits = context.limits().orElseThrow();
-        double wanted = limits.sampling().x();
-        double got = context.sampling().orElseThrow().x();
-        double off = Math.abs(got - wanted) / wanted;
+        Sampling got = context.sampling().orElseThrow();
+        AxisReading worst = worstAxis(got, limits.sampling(), AxisReading::off);
 
-        boolean withinProfile = limits.samplingTolerance().contains(wanted, got);
-        int stars = withinProfile ? starsFor(off, SAMPLING_LADDER) : 0;
+        boolean withinProfile = Stream.of(Axis.values()).allMatch(axis -> limits.samplingTolerance()
+                .contains(limits.sampling().along(axis), got.along(axis)));
+        int stars = withinProfile ? starsFor(worst.off(), SAMPLING_LADDER) : 0;
 
         return new Measurement(
-                got,
+                worst.got(),
                 stars,
-                NumberText.of(tenths(got)) + " ppi against " + NumberText.of(tenths(wanted)) + ", off by "
-                        + NumberText.fixed(off * 100, 2) + " percent");
+                NumberText.of(tenths(worst.got())) + " ppi" + worst.where(got) + " against "
+                        + NumberText.of(tenths(worst.wanted())) + ", off by " + NumberText.fixed(worst.off() * 100, 2)
+                        + " percent");
     }
 
     private static Measurement measureFloor(QcContext context) {
-        double wanted = context.limits().orElseThrow().sampling().x();
-        double got = context.sampling().orElseThrow().x();
-        double shortBy = Math.max(0, (wanted - got) / wanted);
+        Sampling got = context.sampling().orElseThrow();
+        AxisReading worst = worstAxis(got, context.limits().orElseThrow().sampling(), AxisReading::shortBy);
+        double shortBy = worst.shortBy();
+        String reading = NumberText.of(tenths(worst.got())) + " ppi" + worst.where(got);
         String note = shortBy == 0
-                ? NumberText.of(tenths(got)) + " ppi, at or above the " + NumberText.of(tenths(wanted)) + " asked for"
-                : NumberText.of(tenths(got)) + " ppi, " + NumberText.fixed(shortBy * 100, 2) + " percent short of "
-                        + NumberText.of(tenths(wanted));
-        return new Measurement(got, starsFor(shortBy, SAMPLING_LADDER), note);
+                ? reading + ", at or above the " + NumberText.of(tenths(worst.wanted())) + " asked for"
+                : reading + ", " + NumberText.fixed(shortBy * 100, 2) + " percent short of "
+                        + NumberText.of(tenths(worst.wanted()));
+        return new Measurement(worst.got(), starsFor(shortBy, SAMPLING_LADDER), note);
+    }
+
+    /**
+     * The axis that reads worst by the given measure, across before down on a tie. A scanner whose
+     * stepper motor slips samples down the bed coarser than across it, and a check that only read
+     * across would pass every one of those captures.
+     */
+    private static AxisReading worstAxis(Sampling got, Sampling wanted, ToDoubleFunction<AxisReading> badness) {
+        AxisReading across = new AxisReading(Axis.X, got.x(), wanted.x());
+        AxisReading down = new AxisReading(Axis.Y, got.y(), wanted.y());
+        return badness.applyAsDouble(down) > badness.applyAsDouble(across) ? down : across;
+    }
+
+    /** One axis of a capture's frequency against the one asked for on that axis. */
+    private record AxisReading(Axis axis, double got, double wanted) {
+        /** How far off, either way, as a share of the frequency asked for. */
+        double off() {
+            return Math.abs(got - wanted) / wanted;
+        }
+
+        /** How far short, as a share of the frequency asked for; zero at or above it. */
+        double shortBy() {
+            return Math.max(0, (wanted - got) / wanted);
+        }
+
+        /** Nothing for a square capture, else which way along the bed this axis runs. */
+        String where(Sampling sampling) {
+            if (sampling.isSquare()) {
+                return "";
+            }
+            return axis == Axis.X ? " across" : " down";
+        }
     }
 
     private static Measurement measureSkew(QcContext context) {
