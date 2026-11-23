@@ -215,6 +215,7 @@ public final class Fields {
         fields.put("toneTolerance", number(bounded().withMin(0).withMax(255).withFallback(6.0)));
         fields.put(
                 "registrationTolerance", number(bounded().withMin(0).withMax(20).withFallback(0.5)));
+        fields.put("required", list(text(), fallback(List.of("sampling", "skew", "clipping"))));
         return fields;
     }
 
@@ -313,7 +314,9 @@ public final class Fields {
                 wholeAt(read, "minimumStars"),
                 numbersAt(read, "toneAims"),
                 numberAt(read, "toneTolerance"),
-                numberAt(read, "registrationTolerance"));
+                numberAt(read, "registrationTolerance"),
+                ((List<?>) read.get("required"))
+                        .stream().map(String.class::cast).toList());
     }
 
     private static Profile.Naming toNaming(Map<?, ?> read) {

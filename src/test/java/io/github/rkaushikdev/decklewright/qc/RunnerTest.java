@@ -16,7 +16,11 @@ import io.github.rkaushikdev.decklewright.detect.CaptureOptions;
 import io.github.rkaushikdev.decklewright.detect.Captures;
 import io.github.rkaushikdev.decklewright.geom.Rect;
 import io.github.rkaushikdev.decklewright.measure.Sampling;
+import io.github.rkaushikdev.decklewright.profile.Fields;
+import io.github.rkaushikdev.decklewright.profile.Problem;
+import io.github.rkaushikdev.decklewright.profile.Profile;
 import io.github.rkaushikdev.decklewright.profile.ProfileRegistry;
+import io.github.rkaushikdev.decklewright.profile.Validation;
 import io.github.rkaushikdev.decklewright.raster.Layout;
 import io.github.rkaushikdev.decklewright.raster.Surface;
 import io.github.rkaushikdev.decklewright.testing.Bench;
@@ -25,6 +29,7 @@ import io.github.rkaushikdev.decklewright.util.Num;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -237,6 +242,64 @@ class RunnerTest {
             ReportOptions options =
                     ReportOptions.defaults().withWanted(out.wanted()).withItem("q17");
             assertThat(Reports.oneLine(out.findings(), options)).containsPattern("held down by skew");
+        }
+    }
+
+    @Nested
+    class RequiredByTheProfile {
+        private QcInput under(Profile profile) {
+            QcInput house = args();
+            return QcInput.of(house.surface(), house.reading(), profile).withSampling(Sampling.of(400));
+        }
+
+        @Test
+        void fallBackToTheHouseThree() {
+            Profile plain = Fields.parseProfile(Map.of("name", "plain"));
+            assertThat(plain.qc().required()).isEqualTo(REQUIRED);
+            assertThat(QcOptions.defaults().required()).isEmpty();
+        }
+
+        @Test
+        void holdACaptureWhoseRequiredCheckCouldNotRun() {
+            Profile strict = Fields.parseProfile(
+                    Map.of("name", "strict", "qc", Map.of("required", List.of("sampling", "toneResponse"))));
+            QcResult out = runQc(under(strict));
+            assertThat(out.missing()).containsExactly("toneResponse");
+            assertThat(out.stars()).isZero();
+            assertThat(out.passed()).isFalse();
+        }
+
+        @Test
+        void giveWayToOptionsThatNameTheirOwn() {
+            Profile strict =
+                    Fields.parseProfile(Map.of("name", "strict", "qc", Map.of("required", List.of("toneResponse"))));
+            QcResult out = runQc(under(strict), QcOptions.defaults().withRequired(List.of("skew")));
+            assertThat(out.missing()).isEmpty();
+        }
+
+        @Test
+        void areFaultedWhenNoCheckUnderTheProfileHasTheName() {
+            Profile wrong = Fields.parseProfile(
+                    Map.of("name", "wrong", "qc", Map.of("required", List.of("skew", "sharpnes", "toneResponse"))));
+            List<Problem> problems = QcRunner.unrunRequired(wrong);
+            assertThat(problems)
+                    .containsExactly(
+                            Validation.fault(
+                                    "qc.required[1]",
+                                    "names sharpnes, which no check under this profile is called, so every capture is held"),
+                            Validation.fault(
+                                    "qc.required[2]",
+                                    "names toneResponse, which no check under this profile is called, so every capture"
+                                            + " is held"));
+        }
+
+        @Test
+        void holdAQuadrangleWhoseBorderWasNeverRead() {
+            Profile quads = new ProfileRegistry().get("quadrangles");
+            assertThat(quads.qc().required()).contains("neatline");
+            assertThat(QcRunner.unrunRequired(quads)).isEmpty();
+            QcResult out = runQc(under(quads));
+            assertThat(out.missing()).contains("neatline");
         }
     }
 }

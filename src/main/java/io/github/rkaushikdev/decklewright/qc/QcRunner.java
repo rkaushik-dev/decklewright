@@ -5,8 +5,10 @@ import io.github.rkaushikdev.decklewright.detect.ScaleBarFinding;
 import io.github.rkaushikdev.decklewright.detect.TargetFinding;
 import io.github.rkaushikdev.decklewright.geom.Rect;
 import io.github.rkaushikdev.decklewright.profile.Anchor;
+import io.github.rkaushikdev.decklewright.profile.Problem;
 import io.github.rkaushikdev.decklewright.profile.Profile;
 import io.github.rkaushikdev.decklewright.profile.Settings;
+import io.github.rkaushikdev.decklewright.profile.Validation;
 import io.github.rkaushikdev.decklewright.qc.checks.GrayBalance;
 import io.github.rkaushikdev.decklewright.qc.checks.Illumination;
 import io.github.rkaushikdev.decklewright.qc.checks.NeatlineCheck;
@@ -39,7 +41,7 @@ import java.util.function.Supplier;
  * fails every capture in the shop.
  */
 public final class QcRunner {
-    /** The ones a delivery cannot be graded without. */
+    /** The ones a delivery cannot be graded without when the profile says nothing of its own. */
     public static final List<String> REQUIRED = List.of("sampling", "skew", "clipping");
 
     private QcRunner() {}
@@ -103,7 +105,7 @@ public final class QcRunner {
 
     /**
      * Grade a capture: run every check against the level the profile asks for, then take the level
-     * once the required checks are accounted for.
+     * once the required checks are accounted for, the ones the options name or else the profile's.
      *
      * @throws io.github.rkaushikdev.decklewright.QcError when the set holds two checks of one name
      */
@@ -114,7 +116,8 @@ public final class QcRunner {
         int wanted = input.profile().qc().minimumStars();
         QcContext context = contextFor(input);
         List<Finding> findings = Check.runChecks(checks, context, wanted);
-        RequiredLevel level = Levels.levelWithRequired(findings, options.required());
+        List<String> required = options.required().orElse(input.profile().qc().required());
+        RequiredLevel level = Levels.levelWithRequired(findings, required);
 
         return new QcResult(findings, level.stars(), level.worst(), level.missing(), level.stars() >= wanted, wanted);
     }
@@ -172,6 +175,27 @@ public final class QcRunner {
                     profile -> profile.crop().anchor() == Anchor.NEATLINE,
                     "skewAgreement",
                     NeatlineCheck::neatlineCheck));
+
+    /**
+     * The checks a profile requires that no run under it makes, each a fault: a capture is held
+     * whenever a required check could not run, so requiring one the run never has holds every
+     * capture.
+     */
+    public static List<Problem> unrunRequired(Profile profile) {
+        List<String> made =
+                checksFor(profile, standardChecks()).stream().map(Check::name).toList();
+        List<String> required = profile.qc().required();
+        List<Problem> out = new ArrayList<>();
+        for (int i = 0; i < required.size(); i += 1) {
+            if (!made.contains(required.get(i))) {
+                out.add(Validation.fault(
+                        "qc.required[" + i + "]",
+                        "names " + required.get(i) + ", which no check under this profile is called, so every capture"
+                                + " is held"));
+            }
+        }
+        return List.copyOf(out);
+    }
 
     /** The checks with the named ones taken out, the rest in the order given. */
     public static List<Check> withoutChecks(List<Check> checks, List<String> names) {

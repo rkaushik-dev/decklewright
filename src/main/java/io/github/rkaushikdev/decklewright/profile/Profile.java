@@ -263,6 +263,7 @@ public record Profile(
      *     darkest first; copied, and empty when the profile does not aim its wedge
      * @param toneTolerance how far off its aim any one patch may read, in sample values
      * @param registrationTolerance how far apart the colour channels may put an edge, in pixels
+     * @param required the checks a capture cannot be graded without, by name; copied
      */
     public record Qc(
             double samplingPpi,
@@ -275,13 +276,15 @@ public record Profile(
             int minimumStars,
             List<Double> toneAims,
             double toneTolerance,
-            double registrationTolerance)
+            double registrationTolerance,
+            List<String> required)
             implements JsonValue {
 
         /** Quality settings of the given values; the tone aims are copied. */
         public Qc {
             Objects.requireNonNull(samplingTolerance, "samplingTolerance");
             toneAims = List.copyOf(toneAims);
+            required = List.copyOf(required);
         }
 
         /** These settings asking for another grade, everything else the same. */
@@ -297,7 +300,8 @@ public record Profile(
                     stars,
                     toneAims,
                     toneTolerance,
-                    registrationTolerance);
+                    registrationTolerance,
+                    required);
         }
 
         /** The settings in field order, the tone aims left out when there are none, in a new map. */
@@ -317,6 +321,7 @@ public record Profile(
             }
             json.put("toneTolerance", toneTolerance);
             json.put("registrationTolerance", registrationTolerance);
+            json.put("required", new ArrayList<Object>(required));
             return json;
         }
     }

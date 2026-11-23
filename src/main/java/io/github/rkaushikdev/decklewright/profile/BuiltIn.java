@@ -89,7 +89,8 @@ public final class BuiltIn {
 
     /**
      * Quadrangle sheets. The crop is the neatline plus a strip of collar, so the legend at the bottom
-     * survives and the grid ticks on the other three sides do not.
+     * survives and the grid ticks on the other three sides do not. A sheet whose border could not be
+     * read at all is held rather than graded, since its crop stood on nothing.
      */
     public static final Map<String, Object> QUADRANGLES = document(
             """
@@ -111,7 +112,8 @@ public final class BuiltIn {
                 "samplingPpi": 600,
                 "skewTolerance": 0.15,
                 "minimumStars": 4,
-                "maximumClipping": 0.001
+                "maximumClipping": 0.001,
+                "required": ["sampling", "skew", "clipping", "neatline"]
               }
             }
             """);

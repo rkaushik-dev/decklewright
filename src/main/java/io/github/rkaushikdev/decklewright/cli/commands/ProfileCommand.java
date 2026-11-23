@@ -12,6 +12,7 @@ import io.github.rkaushikdev.decklewright.profile.Profile;
 import io.github.rkaushikdev.decklewright.profile.ProfileRegistry;
 import io.github.rkaushikdev.decklewright.profile.Validation;
 import io.github.rkaushikdev.decklewright.qc.Ladders;
+import io.github.rkaushikdev.decklewright.qc.QcRunner;
 import io.github.rkaushikdev.decklewright.util.Json;
 import io.github.rkaushikdev.decklewright.util.NumberText;
 import io.github.rkaushikdev.decklewright.util.Whitespace;
@@ -107,6 +108,7 @@ public final class ProfileCommand implements Command {
             }
 
             List<Problem> problems = new ArrayList<>(Validation.inspectProfile(profile));
+            problems.addAll(QcRunner.unrunRequired(profile));
             problems.addAll(Ladders.unreachableLevels(profile));
             Validation.describeProblems(problems).forEach(sink::err);
             return Validation.faultsOnly(problems).isEmpty() ? 0 : 1;
