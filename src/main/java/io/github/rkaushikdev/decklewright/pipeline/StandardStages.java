@@ -6,6 +6,7 @@ import io.github.rkaushikdev.decklewright.derive.Derivatives;
 import io.github.rkaushikdev.decklewright.derive.DeriveOptions;
 import io.github.rkaushikdev.decklewright.derive.DerivedFile;
 import io.github.rkaushikdev.decklewright.derive.DerivedSet;
+import io.github.rkaushikdev.decklewright.detect.CaptureOptions;
 import io.github.rkaushikdev.decklewright.detect.CaptureReading;
 import io.github.rkaushikdev.decklewright.detect.Captures;
 import io.github.rkaushikdev.decklewright.manifest.Deliveries;
@@ -14,6 +15,7 @@ import io.github.rkaushikdev.decklewright.manifest.FinishedRun;
 import io.github.rkaushikdev.decklewright.plan.CropPlan;
 import io.github.rkaushikdev.decklewright.plan.CropPlanner;
 import io.github.rkaushikdev.decklewright.plan.PlannedCrop;
+import io.github.rkaushikdev.decklewright.profile.Profile;
 import io.github.rkaushikdev.decklewright.profile.Settings;
 import io.github.rkaushikdev.decklewright.qc.QcInput;
 import io.github.rkaushikdev.decklewright.qc.QcResult;
@@ -38,6 +40,24 @@ import java.util.Optional;
  * (a {@link io.github.rkaushikdev.decklewright.manifest.Payload}).
  */
 public final class StandardStages {
+
+    /**
+     * What the detector is told about a capture taken for this profile: the threshold off the bed,
+     * the dust and tear radii, and whether to look for a neatline, all off the profile's capture
+     * section, over the detector's own defaults.
+     *
+     * <p>The rule's length and the scanner's claim are left as the detector has them, so no frequency
+     * is measured off the rule unless a caller asks for one with {@link RunOptions#withCapture}.
+     * Without this a quadrangles run never looked for the border its crop is anchored to.
+     */
+    public static CaptureOptions captureOptionsFor(Profile profile) {
+        Profile.Capture capture = profile.capture();
+        return CaptureOptions.defaults()
+                .withSigma(capture.sigma())
+                .withSpeckle(capture.speckle())
+                .withGap(capture.gap())
+                .withExpectNeatline(capture.expectNeatline());
+    }
 
     /** Read the bytes that came off the disk into pixels. */
     public static final Stage READ = Stages.stage("read", List.of("bytes"), List.of("surface"), StandardStages::read);

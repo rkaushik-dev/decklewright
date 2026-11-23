@@ -56,7 +56,7 @@ public final class Runner {
                 options.host(),
                 options.at().orElseGet(Instant::now),
                 options.level(),
-                options.capture(),
+                options.capture().orElseGet(() -> StandardStages.captureOptionsFor(input.profile())),
                 options.crop());
 
         Map<String, Object> supplied = new LinkedHashMap<>();

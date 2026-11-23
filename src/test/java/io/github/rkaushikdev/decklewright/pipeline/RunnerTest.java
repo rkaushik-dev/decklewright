@@ -5,16 +5,21 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.rkaushikdev.decklewright.PipelineError;
 import io.github.rkaushikdev.decklewright.codec.png.Encoding;
+import io.github.rkaushikdev.decklewright.detect.CaptureOptions;
+import io.github.rkaushikdev.decklewright.detect.CaptureReading;
+import io.github.rkaushikdev.decklewright.geom.Rect;
 import io.github.rkaushikdev.decklewright.manifest.Payload;
 import io.github.rkaushikdev.decklewright.measure.Sampling;
 import io.github.rkaushikdev.decklewright.profile.Profile;
 import io.github.rkaushikdev.decklewright.profile.ProfileRegistry;
+import io.github.rkaushikdev.decklewright.qc.QcResult;
 import io.github.rkaushikdev.decklewright.raster.Layout;
 import io.github.rkaushikdev.decklewright.raster.Surface;
 import io.github.rkaushikdev.decklewright.store.AtomicFiles;
 import io.github.rkaushikdev.decklewright.store.Folder;
 import io.github.rkaushikdev.decklewright.store.Workspace;
 import io.github.rkaushikdev.decklewright.testing.Accession;
+import io.github.rkaushikdev.decklewright.testing.Bench;
 import io.github.rkaushikdev.decklewright.testing.TestBytes;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -92,6 +97,34 @@ class RunnerTest {
             assertThat(out.ok()).isTrue();
             assertThat(out.decision().map(Decision::decision)).hasValue(Verdict.REJECT);
             assertThat(out.decision().orElseThrow().reason()).containsPattern("held down by skew");
+        }
+
+        @Test
+        void looksForTheNeatlineAProfileCropsTo() {
+            Surface ruled = Accession.capture(0);
+            Bench.paint(ruled, Rect.of(105, 88, 130, 2), 30);
+            Bench.paint(ruled, Rect.of(105, 165, 130, 2), 30);
+            Bench.paint(ruled, Rect.of(105, 88, 2, 79), 30);
+            Bench.paint(ruled, Rect.of(233, 88, 2, 79), 30);
+            JobInput quad = JobInput.of("q-1907", Encoding.encodePng(ruled), REGISTRY.get("quadrangles"))
+                    .withSampling(Sampling.of(600));
+
+            RunResult out = Runner.runJob(quad, STAMPED);
+            CaptureReading reading =
+                    out.job().get("reading", CaptureReading.class).orElseThrow();
+            assertThat(reading.neatline()).isPresent();
+            QcResult quality = out.job().get("quality", QcResult.class).orElseThrow();
+            assertThat(quality.findings().stream()
+                            .filter(finding -> finding.name().equals("neatline")))
+                    .singleElement()
+                    .satisfies(finding -> assertThat(finding.ran()).isTrue());
+
+            RunResult told = Runner.runJob(quad, STAMPED.withCapture(CaptureOptions.defaults()));
+            assertThat(told.job()
+                            .get("reading", CaptureReading.class)
+                            .orElseThrow()
+                            .neatline())
+                    .isEmpty();
         }
 
         @Test

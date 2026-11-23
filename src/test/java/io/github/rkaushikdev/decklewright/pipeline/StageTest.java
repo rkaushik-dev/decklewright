@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.rkaushikdev.decklewright.PipelineError;
+import io.github.rkaushikdev.decklewright.detect.CaptureOptions;
 import io.github.rkaushikdev.decklewright.profile.Profile;
 import io.github.rkaushikdev.decklewright.profile.ProfileRegistry;
 import java.lang.reflect.Field;
@@ -341,6 +342,38 @@ class StageTest {
         void saysWhyOneFailed() {
             assertThat(Stages.describeResult(Stages.runStage(PLAN, Job.start("a"), CONTEXT)))
                     .containsPattern("^plan failed: ");
+        }
+    }
+
+    @Nested
+    class CaptureOptionsFor {
+        @Test
+        void tellsTheDetectorWhatTheProfileSays() {
+            CaptureOptions rolled = StandardStages.captureOptionsFor(new ProfileRegistry().get("rolled-drawings"));
+            assertThat(rolled.sigma()).isEqualTo(4);
+            assertThat(rolled.gap()).isEqualTo(6);
+            assertThat(rolled.expectNeatline()).isFalse();
+            assertThat(StandardStages.captureOptionsFor(new ProfileRegistry().get("quadrangles"))
+                            .expectNeatline())
+                    .isTrue();
+        }
+
+        @Test
+        void leavesTheRuleAndTheClaimAsTheDetectorHasThem() {
+            CaptureOptions house = StandardStages.captureOptionsFor(new ProfileRegistry().get("house"));
+            assertThat(house.barLength()).isEqualTo(CaptureOptions.defaults().barLength());
+            assertThat(house.claimed()).isEmpty();
+        }
+
+        @Test
+        void standsInForARunThatSaysNothing() {
+            assertThat(RunOptions.defaults().capture()).isEmpty();
+            CaptureOptions told = CaptureOptions.defaults().withSigma(9);
+            assertThat(RunOptions.defaults().withCapture(told).capture()).contains(told);
+            assertThat(StageContext.of(new ProfileRegistry().get("microfilm"), Instant.EPOCH)
+                            .capture()
+                            .speckle())
+                    .isEqualTo(1);
         }
     }
 }

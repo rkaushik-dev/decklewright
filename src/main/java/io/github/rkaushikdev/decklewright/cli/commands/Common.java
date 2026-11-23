@@ -4,10 +4,14 @@ import io.github.rkaushikdev.decklewright.BadArgumentError;
 import io.github.rkaushikdev.decklewright.DeckleError;
 import io.github.rkaushikdev.decklewright.cli.Args;
 import io.github.rkaushikdev.decklewright.cli.OptionSpec;
+import io.github.rkaushikdev.decklewright.codec.Codecs;
+import io.github.rkaushikdev.decklewright.detect.Captures;
 import io.github.rkaushikdev.decklewright.measure.Sampling;
+import io.github.rkaushikdev.decklewright.pipeline.StandardStages;
 import io.github.rkaushikdev.decklewright.profile.Profile;
 import io.github.rkaushikdev.decklewright.profile.ProfileLoader;
 import io.github.rkaushikdev.decklewright.profile.ProfileRegistry;
+import io.github.rkaushikdev.decklewright.raster.Surface;
 import io.github.rkaushikdev.decklewright.store.AtomicFiles;
 import io.github.rkaushikdev.decklewright.util.Guards;
 import io.github.rkaushikdev.decklewright.util.Json;
@@ -86,6 +90,19 @@ public final class Common {
         byte[] bytes = AtomicFiles.readBytes(file);
         Path name = file.getFileName();
         return new CaptureFile(path, stem(name == null ? "" : name.toString()), bytes);
+    }
+
+    /**
+     * A capture off a disk, decoded and read with what the profile's capture section tells the
+     * detector, which is what a batch run under the same profile would have read.
+     *
+     * @throws io.github.rkaushikdev.decklewright.StoreError when it could not be read
+     * @throws io.github.rkaushikdev.decklewright.CodecError when it will not decode
+     */
+    public static ReadCapture readCaptureAt(String path, Profile profile) {
+        CaptureFile file = captureAt(path);
+        Surface surface = Codecs.readImage(file.bytes(), path);
+        return new ReadCapture(file, surface, Captures.readCapture(surface, StandardStages.captureOptionsFor(profile)));
     }
 
     /**

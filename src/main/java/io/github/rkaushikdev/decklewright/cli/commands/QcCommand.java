@@ -4,9 +4,7 @@ import io.github.rkaushikdev.decklewright.DeckleError;
 import io.github.rkaushikdev.decklewright.cli.Args;
 import io.github.rkaushikdev.decklewright.cli.OptionSpec;
 import io.github.rkaushikdev.decklewright.cli.ParsedArgs;
-import io.github.rkaushikdev.decklewright.codec.Codecs;
 import io.github.rkaushikdev.decklewright.detect.CaptureReading;
-import io.github.rkaushikdev.decklewright.detect.Captures;
 import io.github.rkaushikdev.decklewright.measure.Sampling;
 import io.github.rkaushikdev.decklewright.plan.CropPlanner;
 import io.github.rkaushikdev.decklewright.plan.PlanOptions;
@@ -74,9 +72,9 @@ public final class QcCommand implements Command {
             OptionalDouble stars = args.number("stars");
             Profile profile = stars.isPresent() ? atLevel(base, stars.getAsDouble()) : base;
 
-            CaptureFile capture = Common.captureAt(path.get());
-            Surface surface = Codecs.readImage(capture.bytes(), path.get());
-            CaptureReading reading = Captures.readCapture(surface);
+            ReadCapture capture = Common.readCaptureAt(path.get(), profile);
+            Surface surface = capture.surface();
+            CaptureReading reading = capture.reading();
             Optional<Sampling> sampling = Common.samplingFrom(args.number("ppi"), profile);
 
             QcInput input = QcInput.of(surface, reading, profile);
@@ -90,7 +88,8 @@ public final class QcCommand implements Command {
                                 .rect());
             }
 
-            GradingOptions grading = GradingOptions.defaults().withItem(capture.accession());
+            GradingOptions grading =
+                    GradingOptions.defaults().withItem(capture.file().accession());
             if (args.flag("json")) {
                 Map<String, Object> graded = Grading.gradingToJson(input, grading);
                 sink.out(Json.stringify(graded, 2));

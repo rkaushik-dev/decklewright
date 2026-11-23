@@ -20,7 +20,8 @@ import java.util.OptionalInt;
  * @param host the stand it runs on, when a lab has several
  * @param at when it happened, stamped on the delivery and the ledger; empty for the time it is now
  * @param level the compression level the derivatives are written at; empty for the codec's own
- * @param capture what the detector is told when it reads the capture
+ * @param capture what the detector is told when it reads the capture; empty for what the profile's
+ *     capture section says
  * @param crop the planner's per run choices
  * @see Runner#runJob(JobInput, RunOptions)
  */
@@ -32,7 +33,7 @@ public record RunOptions(
         Optional<String> host,
         Optional<Instant> at,
         OptionalInt level,
-        CaptureOptions capture,
+        Optional<CaptureOptions> capture,
         PlanOptions crop) {
 
     /** Options of the given parts; the stages are copied. */
@@ -50,7 +51,7 @@ public record RunOptions(
 
     /**
      * The standard stages under the profile's policy, version {@code 0.0.0}, no stand, now, the
-     * codec's own level, and the detector's and the planner's defaults.
+     * codec's own level, the detector told what the profile says, and the planner's defaults.
      */
     public static RunOptions defaults() {
         return new RunOptions(
@@ -61,7 +62,7 @@ public record RunOptions(
                 Optional.empty(),
                 Optional.empty(),
                 OptionalInt.empty(),
-                CaptureOptions.defaults(),
+                Optional.empty(),
                 PlanOptions.defaults());
     }
 
@@ -101,9 +102,9 @@ public record RunOptions(
                 stages, policy, alreadyThere, version, host, at, OptionalInt.of(compression), capture, crop);
     }
 
-    /** These options telling the detector something else. */
+    /** These options telling the detector something other than what the profile says. */
     public RunOptions withCapture(CaptureOptions options) {
-        return new RunOptions(stages, policy, alreadyThere, version, host, at, level, options, crop);
+        return new RunOptions(stages, policy, alreadyThere, version, host, at, level, Optional.of(options), crop);
     }
 
     /** These options with other planner choices. */

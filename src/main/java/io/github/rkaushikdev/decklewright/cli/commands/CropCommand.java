@@ -4,12 +4,9 @@ import io.github.rkaushikdev.decklewright.DeckleError;
 import io.github.rkaushikdev.decklewright.cli.Args;
 import io.github.rkaushikdev.decklewright.cli.OptionSpec;
 import io.github.rkaushikdev.decklewright.cli.ParsedArgs;
-import io.github.rkaushikdev.decklewright.codec.Codecs;
 import io.github.rkaushikdev.decklewright.derive.Derivatives;
 import io.github.rkaushikdev.decklewright.derive.DerivedFile;
 import io.github.rkaushikdev.decklewright.derive.DerivedSet;
-import io.github.rkaushikdev.decklewright.detect.CaptureReading;
-import io.github.rkaushikdev.decklewright.detect.Captures;
 import io.github.rkaushikdev.decklewright.manifest.PayloadEntry;
 import io.github.rkaushikdev.decklewright.plan.CropPlanner;
 import io.github.rkaushikdev.decklewright.plan.Explanations;
@@ -86,13 +83,12 @@ public final class CropCommand implements Command {
 
         try {
             Profile profile = Common.profileNamed(args.string("profile").orElseThrow());
-            CaptureFile capture = Common.captureAt(path.get());
-            String accession = args.string("name").orElse(capture.accession());
-            Surface surface = Codecs.readImage(capture.bytes(), path.get());
+            ReadCapture read = Common.readCaptureAt(path.get(), profile);
+            String accession = args.string("name").orElse(read.file().accession());
+            Surface surface = read.surface();
 
-            CaptureReading reading = Captures.readCapture(surface);
             PlannedCrop planned = CropPlanner.planCrop(
-                    reading,
+                    read.reading(),
                     profile,
                     surface.bounds(),
                     Common.samplingFrom(args.number("ppi"), profile),

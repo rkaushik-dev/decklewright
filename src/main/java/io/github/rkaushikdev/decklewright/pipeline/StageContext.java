@@ -48,7 +48,7 @@ public record StageContext(
 
     /**
      * A run under a profile at a time, with no measured frequency, version {@code 0.0.0}, no stand,
-     * the codec's own level, and the detector's and the planner's defaults.
+     * the codec's own level, the detector told what the profile says, and the planner's defaults.
      */
     public static StageContext of(Profile profile, Instant at) {
         return new StageContext(
@@ -58,7 +58,7 @@ public record StageContext(
                 Optional.empty(),
                 at,
                 OptionalInt.empty(),
-                CaptureOptions.defaults(),
+                StandardStages.captureOptionsFor(profile),
                 PlanOptions.defaults());
     }
 }

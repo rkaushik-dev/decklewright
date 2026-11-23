@@ -4,7 +4,6 @@ import io.github.rkaushikdev.decklewright.DeckleError;
 import io.github.rkaushikdev.decklewright.cli.Args;
 import io.github.rkaushikdev.decklewright.cli.OptionSpec;
 import io.github.rkaushikdev.decklewright.cli.ParsedArgs;
-import io.github.rkaushikdev.decklewright.codec.Codecs;
 import io.github.rkaushikdev.decklewright.detect.CaptureReading;
 import io.github.rkaushikdev.decklewright.detect.Captures;
 import io.github.rkaushikdev.decklewright.measure.Sampling;
@@ -78,9 +77,10 @@ public final class PlanCommand implements Command {
 
         try {
             Profile profile = Common.profileNamed(args.string("profile").orElseThrow());
-            CaptureFile capture = Common.captureAt(path.get());
-            Surface surface = Codecs.readImage(capture.bytes(), path.get());
-            CaptureReading reading = Captures.readCapture(surface);
+            ReadCapture read = Common.readCaptureAt(path.get(), profile);
+            CaptureFile capture = read.file();
+            Surface surface = read.surface();
+            CaptureReading reading = read.reading();
             Optional<Sampling> sampling = Common.samplingFrom(args.number("ppi"), profile);
 
             PlannedCrop out =
