@@ -75,22 +75,52 @@ public final class Illumination {
     }
 
     /**
-     * Which corner is darkest, which is what an operator needs in order to move a lamp. It is not a
-     * check, it is the thing a failed check should have said. The region is split into a two by two
-     * grid and the first channel read over each patch; on a tie the first corner, top left, wins.
+     * Which corner of a region is darkest, with nothing kept off it.
      *
-     * @return the darkest corner; {@code top left} with a mean that is not a number when no part of
-     *     the region lies on the capture
+     * @see #darkestCorner(Surface, Rect, List)
      */
     public static DarkCorner darkestCorner(Surface surface, Rect region) {
-        double[] means = Patches.patchMeans(surface, Patches.patchGrid(region, 2, 2));
-        int at = 0;
-        for (int i = 1; i < means.length; i += 1) {
-            if (means[i] < means[at]) {
+        return darkestCorner(surface, region, List.of());
+    }
+
+    /**
+     * Which corner is darkest, which is what an operator needs in order to move a lamp. It is not a
+     * check, it is the thing a failed check should have said. The region is split into quarters, and
+     * each quarter is read the way the check reads the bed: a grid of patches kept off everything
+     * named, the first channel read over each and the patches averaged. A quarter with no patch left
+     * is not a candidate, and on a tie the first corner, top left, wins.
+     *
+     * <p>It has to be read off the same patches the check measured. Read off the sheet, a plate
+     * whose paper browned at one end sends the operator to move a lamp that was never the trouble.
+     *
+     * @param avoid what no patch may overlap, such as the sheet and the target
+     * @return the darkest corner and how far under the brightest it sits; {@code top left} with a
+     *     mean that is not a number when no quarter could be read
+     */
+    public static DarkCorner darkestCorner(Surface surface, Rect region, List<Rect> avoid) {
+        List<Rect> quarters = Patches.patchGrid(region, 2, 2, 0);
+        double[] means = new double[quarters.size()];
+        for (int i = 0; i < quarters.size(); i += 1) {
+            double[] patches = Patches.patchMeans(surface, Patches.gridOver(quarters.get(i), 2, 2, avoid));
+            means[i] = patches.length == 0 ? Double.NaN : Num.sum(patches) / patches.length;
+        }
+
+        int at = -1;
+        double brightest = Double.NEGATIVE_INFINITY;
+        for (int i = 0; i < means.length; i += 1) {
+            if (Double.isNaN(means[i])) {
+                continue;
+            }
+            brightest = Math.max(brightest, means[i]);
+            if (at < 0 || means[i] < means[at]) {
                 at = i;
             }
         }
-        return new DarkCorner(CORNERS.get(at), means.length == 0 ? Double.NaN : means[at]);
+        if (at < 0) {
+            return new DarkCorner(CORNERS.get(0), Double.NaN, 0);
+        }
+        double under = brightest == 0 ? 0 : (brightest - means[at]) / brightest;
+        return new DarkCorner(CORNERS.get(at), means[at], under);
     }
 
     private static Measurement measure(QcContext context, int across, int down) {

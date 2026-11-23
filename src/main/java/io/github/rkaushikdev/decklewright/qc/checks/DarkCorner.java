@@ -7,10 +7,11 @@ import java.util.Objects;
  *
  * @param corner {@code top left}, {@code top right}, {@code bottom left} or {@code bottom right}
  * @param mean the mean of the first channel there; not a number when no corner could be read
+ * @param under how far it sits under the brightest corner, as a share of the brightest
  * @see Illumination#darkestCorner(io.github.rkaushikdev.decklewright.raster.Surface,
- *     io.github.rkaushikdev.decklewright.geom.Rect)
+ *     io.github.rkaushikdev.decklewright.geom.Rect, java.util.List)
  */
-public record DarkCorner(String corner, double mean) {
+public record DarkCorner(String corner, double mean, double under) {
     /** A reading of the given parts. */
     public DarkCorner {
         Objects.requireNonNull(corner, "corner");

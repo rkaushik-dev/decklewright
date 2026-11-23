@@ -15,6 +15,7 @@ import io.github.rkaushikdev.decklewright.qc.QcContext;
 import io.github.rkaushikdev.decklewright.qc.Rung;
 import io.github.rkaushikdev.decklewright.raster.Layout;
 import io.github.rkaushikdev.decklewright.raster.Surface;
+import io.github.rkaushikdev.decklewright.testing.Bench;
 import io.github.rkaushikdev.decklewright.util.Num;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -115,6 +116,43 @@ class IlluminationTest {
             DarkCorner out = darkestCorner(litBed(0.4));
             assertThat(out.mean()).isGreaterThan(0);
             assertThat(out.mean()).isLessThan(200);
+        }
+
+        @Test
+        void saysHowFarUnderTheBrightestCornerItSits() {
+            DarkCorner out = darkestCorner(litBed(0.4));
+            assertThat(out.under()).isBetween(0.2, 0.4);
+            assertThat(darkestCorner(Surface.create(40, 40, Layout.GRAY, 8, 120))
+                            .under())
+                    .isZero();
+        }
+
+        @Test
+        void readsTheBedAndNotADarkSheetLyingOnIt() {
+            Surface surface = litBed(0.3);
+            Rect sheet = Rect.of(10, 10, 70, 140);
+            Bench.paint(surface, sheet, 30);
+            assertThat(darkestCorner(surface, surface.bounds()).corner()).isEqualTo("top left");
+            assertThat(darkestCorner(surface, surface.bounds(), List.of(sheet)).corner())
+                    .isEqualTo("top right");
+        }
+
+        @Test
+        void passesOverAQuarterTheSheetCoversWhole() {
+            Surface surface = litBed(0);
+            Rect sheet = Rect.of(0, 0, 100, 80);
+            Bench.paint(surface, sheet, 10);
+            DarkCorner out = darkestCorner(surface, surface.bounds(), List.of(sheet));
+            assertThat(out.corner()).isEqualTo("top right");
+            assertThat(out.mean()).isEqualTo(200);
+        }
+
+        @Test
+        void hasNoCornerWhenEveryQuarterIsCovered() {
+            Surface surface = litBed(0.2);
+            DarkCorner out = darkestCorner(surface, surface.bounds(), List.of(surface.bounds()));
+            assertThat(out.corner()).isEqualTo("top left");
+            assertThat(out.mean()).isNaN();
         }
 
         @Test

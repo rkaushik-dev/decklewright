@@ -4,6 +4,7 @@ import io.github.rkaushikdev.decklewright.detect.TargetFinding;
 import io.github.rkaushikdev.decklewright.qc.checks.DarkCorner;
 import io.github.rkaushikdev.decklewright.qc.checks.GrayBalance;
 import io.github.rkaushikdev.decklewright.qc.checks.Illumination;
+import io.github.rkaushikdev.decklewright.util.NumberText;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,8 @@ public final class Grading {
      * <p>The advice is the part an operator acts on and it is worth more than the level, because a
      * capture that failed on illumination and a capture that failed on focus both read two stars and
      * want opposite things done to the stand. Where a check can say which way the fault goes, it
-     * does: a short illumination check adds which corner of the sheet is darkest, and a short gray
+     * does: a short illumination check adds which corner of the bed is darkest, read off the bed the
+     * check measured with the sheet and the target kept off it, and a short gray
      * balance check adds which way the cast goes when there is a target to read it off.
      *
      * @param options the same options {@link QcRunner#runQc(QcInput, QcOptions)} takes
@@ -51,11 +53,14 @@ public final class Grading {
                 .map(line -> line.substring(0, line.indexOf(':')))
                 .collect(Collectors.toSet());
         if (shortOn.contains("illumination")) {
+            QcContext context = QcRunner.contextFor(input);
             DarkCorner corner = Illumination.darkestCorner(
                     input.surface(),
-                    input.reading().sheet().quad().boundingRect().outward());
+                    context.bed().orElseGet(input.surface()::bounds),
+                    context.avoid().orElse(List.of()));
             if (Double.isFinite(corner.mean())) {
-                advice.add("the " + corner.corner() + " is the dark side");
+                advice.add("the " + corner.corner() + " is the dark side, " + NumberText.fixed(corner.under() * 100, 1)
+                        + " percent under the brightest");
             }
         }
         Optional<TargetFinding> target = input.reading().target();

@@ -218,7 +218,9 @@ class IndexTest {
         void saysWhichSideIsDarkNotOnlyThatTheLightingIsUneven() {
             GradedCapture out = gradeCapture(args(0, 0, 0.5));
             assertThat(String.join(" ", out.advice())).containsPattern("move a lamp");
-            assertThat(String.join(" ", out.advice())).containsPattern("dark side");
+            assertThat(String.join(" ", out.advice()))
+                    .containsPattern(
+                            "the (top|bottom) right is the dark side, [0-9]+\\.[0-9] percent under the brightest");
         }
 
         @Test
