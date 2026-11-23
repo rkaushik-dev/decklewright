@@ -12,6 +12,7 @@ import io.github.rkaushikdev.decklewright.qc.checks.Noise;
 import io.github.rkaushikdev.decklewright.qc.checks.SamplingAndSkew;
 import io.github.rkaushikdev.decklewright.qc.checks.Sharpness;
 import io.github.rkaushikdev.decklewright.qc.checks.ToneResponse;
+import io.github.rkaushikdev.decklewright.qc.checks.WedgeSteps;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -43,7 +44,7 @@ public final class QcRunner {
 
     /**
      * The checks that run on every capture, in the order a report lists them: sampling, skew, skew
-     * agreement, illumination, gray balance, noise, clipping and sharpness.
+     * agreement, illumination, gray balance, the steps of the wedge, noise, clipping and sharpness.
      */
     public static List<Check> standardChecks() {
         return List.of(
@@ -52,6 +53,7 @@ public final class QcRunner {
                 SamplingAndSkew.skewAgreementCheck(),
                 Illumination.illuminationCheck(),
                 GrayBalance.grayBalanceCheck(),
+                WedgeSteps.wedgeStepsCheck(),
                 Noise.noiseCheck(),
                 Noise.clippingCheck(),
                 Sharpness.sharpnessCheck());

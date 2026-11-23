@@ -197,7 +197,7 @@ class IndexTest {
         @Test
         void gradesAndAdvisesInOneCall() {
             GradedCapture out = gradeCapture(args());
-            assertThat(out.result().findings()).hasSize(8);
+            assertThat(out.result().findings()).hasSize(9);
             assertThat(out.result().passed()).isTrue();
             assertThat(out.advice()).isEqualTo(List.of());
             // the run's own fields first, in their own order, with the advice after them
@@ -240,7 +240,7 @@ class IndexTest {
                     args(),
                     QcOptions.defaults()
                             .withChecks(QcRunner.withoutChecks(QcRunner.standardChecks(), List.of("sharpness"))));
-            assertThat(out.result().findings()).hasSize(7);
+            assertThat(out.result().findings()).hasSize(8);
         }
     }
 
@@ -274,7 +274,7 @@ class IndexTest {
             Map<String, Object> out = gradingToJson(args(4, 0, 0), item("q17"));
             assertThat(out.get("item")).isEqualTo("q17");
             assertThat(out.get("passed")).isEqualTo(false);
-            assertThat(out.get("measurements")).asInstanceOf(MAP).hasSize(8);
+            assertThat(out.get("measurements")).asInstanceOf(MAP).hasSize(9);
             assertThat(out.get("advice")).asInstanceOf(LIST).isNotEmpty();
         }
 

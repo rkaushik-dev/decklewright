@@ -11,11 +11,15 @@ import io.github.rkaushikdev.decklewright.qc.Need;
 import io.github.rkaushikdev.decklewright.qc.Patches;
 import io.github.rkaushikdev.decklewright.qc.QcContext;
 import io.github.rkaushikdev.decklewright.qc.Rung;
+import io.github.rkaushikdev.decklewright.raster.ChannelStats;
+import io.github.rkaushikdev.decklewright.raster.Stats;
 import io.github.rkaushikdev.decklewright.raster.Surface;
+import io.github.rkaushikdev.decklewright.raster.SurfaceView;
 import io.github.rkaushikdev.decklewright.util.NumberText;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalDouble;
 
 /**
@@ -68,16 +72,31 @@ public final class ToneResponse {
      * @return in sample values; empty when nothing of the patch is on the capture
      */
     public static OptionalDouble toneOf(Surface surface, Patch patch) {
-        double[] means = Patches.channelMeans(surface, patch.rect());
-        int colours = Math.min(means.length, surface.layout().colourCount());
-        if (colours == 0) {
-            return OptionalDouble.empty();
+        return readTone(surface, patch)
+                .map(read -> OptionalDouble.of(read.tone()))
+                .orElseGet(OptionalDouble::empty);
+    }
+
+    /**
+     * The tone of one patch and how much it varies, both over the inner part of the patch and both
+     * the mean over its colour channels.
+     *
+     * @return empty when nothing of the patch is on the capture
+     */
+    public static Optional<PatchTone> readTone(Surface surface, Patch patch) {
+        Optional<SurfaceView> view = Patches.patchView(surface, patch.rect());
+        if (view.isEmpty()) {
+            return Optional.empty();
         }
-        double sum = 0;
+        int colours = surface.layout().colourCount();
+        double tone = 0;
+        double spread = 0;
         for (int c = 0; c < colours; c += 1) {
-            sum += means[c];
+            ChannelStats stats = Stats.channelStats(view.get(), c);
+            tone += stats.mean();
+            spread += stats.stdDev();
         }
-        return OptionalDouble.of(sum / colours);
+        return Optional.of(new PatchTone(tone / colours, spread / colours));
     }
 
     /**
