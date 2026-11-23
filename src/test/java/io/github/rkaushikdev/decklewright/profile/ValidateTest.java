@@ -104,6 +104,35 @@ class ValidateTest {
         }
 
         @Test
+        void notesAScannerClaimTheSamplingCheckWouldFail() {
+            List<Problem> problems = inspectProfile(profile(bag("qc", bag("samplingPpi", 600.0))));
+            assertThat(problems)
+                    .containsExactly(note(
+                            "capture.claimedPpi",
+                            "claims 400 ppi against the 600 the sampling check grades to, so a capture planned at the"
+                                    + " claim fails it"));
+        }
+
+        @Test
+        void takesAClaimInsideTheSamplingTolerance() {
+            assertThat(inspectProfile(profile(bag("capture", bag("claimedPpi", 403.0)))))
+                    .isEmpty();
+            assertThat(paths(inspectProfile(profile(bag("capture", bag("claimedPpi", 405.0))))))
+                    .containsExactly("capture.claimedPpi");
+        }
+
+        @Test
+        void keepsTheOrderTheSettingsAreWrittenIn() {
+            List<Problem> problems = inspectProfile(profile(bag(
+                    "crop",
+                    bag("anchor", "neatline", "minimumPpi", 700.0),
+                    "qc",
+                    bag("samplingPpi", 600.0, "toneAims", list(10.0, 30.0, 20.0)))));
+            assertThat(paths(problems))
+                    .containsExactly("crop.anchor", "crop.minimumPpi", "capture.claimedPpi", "qc.toneAims");
+        }
+
+        @Test
         void acceptsThePairWhenBothAreSet() {
             List<Problem> problems = inspectProfile(
                     profile(bag("crop", bag("anchor", "neatline"), "capture", bag("expectNeatline", true))));

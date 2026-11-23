@@ -66,7 +66,8 @@ public final class BuiltIn {
 
     /**
      * Bound volumes photographed on the copy stand. The paper edge is the crop, because a plate that
-     * has been trimmed by a binder is still the whole plate.
+     * has been trimmed by a binder is still the whole plate. The stand is set to the 600 ppi the
+     * plates are graded at, so a plate nobody measured is planned at what it was taken at.
      */
     public static final Map<String, Object> ATLAS_PLATES = document(
             """
@@ -74,6 +75,7 @@ public final class BuiltIn {
               "name": "atlas-plates",
               "title": "county atlas plates",
               "extends": "house",
+              "capture": { "claimedPpi": 600 },
               "crop": {
                 "bleed": "2mm",
                 "minimumPpi": 400

@@ -118,6 +118,12 @@ class BuiltinTest {
         void keepsTheHouseNaming() {
             assertThat(profile.naming().pattern()).isEqualTo("{accession}_{derivative}");
         }
+
+        @Test
+        void claimsTheFrequencyItIsGradedAt() {
+            assertThat(profile.capture().claimedPpi()).isEqualTo(profile.qc().samplingPpi());
+            assertThat(Validation.inspectProfile(profile)).isEmpty();
+        }
     }
 
     @Nested

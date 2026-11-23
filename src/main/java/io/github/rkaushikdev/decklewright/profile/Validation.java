@@ -43,35 +43,83 @@ public final class Validation {
 
     /** Every problem with an already parsed profile, in the order the settings are read. */
     public static List<Problem> inspectProfile(Profile profile) {
-        Profile.Capture capture = profile.capture();
-        Profile.Crop crop = profile.crop();
-        Profile.Qc qc = profile.qc();
         List<Problem> problems = new ArrayList<>();
+        for (Rule rule : RULES) {
+            rule.inspect(profile, problems);
+        }
+        return List.copyOf(problems);
+    }
 
-        if (crop.anchor() == Anchor.NEATLINE && !capture.expectNeatline()) {
+    /** One cross check, adding whatever it finds to the problems so far. */
+    @FunctionalInterface
+    private interface Rule {
+        void inspect(Profile profile, List<Problem> problems);
+    }
+
+    /** Every cross check, in the order the settings they read are written. */
+    private static final List<Rule> RULES = List.of(
+            Validation::neatline,
+            Validation::deskewThreshold,
+            Validation::samplingFloor,
+            Validation::scannerClaim,
+            Validation::edges,
+            Validation::derivatives,
+            Validation::naming,
+            Validation::toneAims);
+
+    private static void neatline(Profile profile, List<Problem> problems) {
+        boolean looks = profile.capture().expectNeatline();
+        boolean anchored = profile.crop().anchor() == Anchor.NEATLINE;
+        if (anchored && !looks) {
             problems.add(fault("crop.anchor", "anchors to the neatline but the capture stage never looks for one"));
         }
-        if (capture.expectNeatline() && crop.anchor() != Anchor.NEATLINE) {
+        if (looks && !anchored) {
             problems.add(note("capture.expectNeatline", "looks for a neatline that the crop ignores"));
         }
+    }
 
+    private static void deskewThreshold(Profile profile, List<Problem> problems) {
+        Profile.Crop crop = profile.crop();
+        double skewTolerance = profile.qc().skewTolerance();
         if (crop.deskewAbove() > 0 && !crop.deskew()) {
             problems.add(note("crop.deskewAbove", "has no effect, the crop never straightens a sheet"));
         }
-        if (crop.deskew() && crop.deskewAbove() > qc.skewTolerance()) {
+        if (crop.deskew() && crop.deskewAbove() > skewTolerance) {
             problems.add(note(
                     "crop.deskewAbove",
                     "leaves sheets up to " + NumberText.of(crop.deskewAbove()) + " deg off square, past the "
-                            + NumberText.of(qc.skewTolerance()) + " the skew check allows"));
+                            + NumberText.of(skewTolerance) + " the skew check allows"));
         }
+    }
 
-        if (crop.minimumPpi() > qc.samplingPpi()) {
+    private static void samplingFloor(Profile profile, List<Problem> problems) {
+        double floor = profile.crop().minimumPpi();
+        double graded = profile.qc().samplingPpi();
+        if (floor > graded) {
             problems.add(fault(
                     "crop.minimumPpi",
-                    "demands " + NumberText.of(crop.minimumPpi()) + " ppi from a capture taken at "
-                            + NumberText.of(qc.samplingPpi())));
+                    "demands " + NumberText.of(floor) + " ppi from a capture taken at " + NumberText.of(graded)));
         }
+    }
 
+    /**
+     * A scanner claim the sampling check would fail. The claim is what a run plans at when nobody
+     * measures the frequency, so a profile whose claim sits outside its own sampling tolerance plans
+     * every unmeasured capture at a frequency it then grades as wrong.
+     */
+    private static void scannerClaim(Profile profile, List<Problem> problems) {
+        Profile.Qc qc = profile.qc();
+        double claimed = profile.capture().claimedPpi();
+        if (!qc.samplingTolerance().contains(qc.samplingPpi(), claimed)) {
+            problems.add(note(
+                    "capture.claimedPpi",
+                    "claims " + NumberText.of(claimed) + " ppi against the " + NumberText.of(qc.samplingPpi())
+                            + " the sampling check grades to, so a capture planned at the claim fails it"));
+        }
+    }
+
+    private static void edges(Profile profile, List<Problem> problems) {
+        Profile.Crop crop = profile.crop();
         for (String side : Edges.SIDES) {
             Length bleed = crop.bleed().side(side);
             Length safeArea = crop.safeArea().side(side);
@@ -85,22 +133,27 @@ public final class Validation {
                 problems.add(note("crop.safeArea." + side, "is set alongside a bleed, so the two will fight"));
             }
         }
+    }
 
-        problems.addAll(inspectDerivatives(profile.derivatives()));
-        for (int i = 0; i < profile.derivatives().size(); i += 1) {
-            OptionalDouble ppi = profile.derivatives().get(i).ppi();
-            if (ppi.isPresent() && ppi.getAsDouble() >= qc.samplingPpi()) {
+    private static void derivatives(Profile profile, List<Problem> problems) {
+        List<Profile.Derivative> derivatives = profile.derivatives();
+        double graded = profile.qc().samplingPpi();
+        problems.addAll(inspectDerivatives(derivatives));
+        for (int i = 0; i < derivatives.size(); i += 1) {
+            OptionalDouble ppi = derivatives.get(i).ppi();
+            if (ppi.isPresent() && ppi.getAsDouble() >= graded) {
                 problems.add(note(
                         "derivatives[" + i + "].ppi",
                         "asks for " + NumberText.of(ppi.getAsDouble()) + " ppi from a capture taken at "
-                                + NumberText.of(qc.samplingPpi()) + ", so it is written full size"));
+                                + NumberText.of(graded) + ", so it is written full size"));
             }
         }
-
-        if (profile.derivatives().isEmpty()) {
+        if (derivatives.isEmpty()) {
             problems.add(note("derivatives", "is empty, so a run will plan a crop and write nothing"));
         }
+    }
 
+    private static void naming(Profile profile, List<Problem> problems) {
         List<String> unfilled = Settings.placeholdersIn(profile.naming().pattern()).stream()
                 .filter(name -> !FILLED.contains(name))
                 .toList();
@@ -110,12 +163,12 @@ public final class Validation {
                     "names " + String.join(" and ", unfilled) + ", which nothing in a run fills, so it stays in every"
                             + " file name"));
         }
+    }
 
-        if (!steppingOneWay(qc.toneAims())) {
+    private static void toneAims(Profile profile, List<Problem> problems) {
+        if (!steppingOneWay(profile.qc().toneAims())) {
             problems.add(fault("qc.toneAims", "does not step one way, so no wedge can read it"));
         }
-
-        return List.copyOf(problems);
     }
 
     /** Every problem with a list of derivatives, each pathed by its index. */
