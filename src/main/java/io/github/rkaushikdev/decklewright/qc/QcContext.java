@@ -1,5 +1,6 @@
 package io.github.rkaushikdev.decklewright.qc;
 
+import io.github.rkaushikdev.decklewright.detect.Neatline;
 import io.github.rkaushikdev.decklewright.detect.TargetFinding;
 import io.github.rkaushikdev.decklewright.geom.Angle;
 import io.github.rkaushikdev.decklewright.geom.Rect;
@@ -30,6 +31,7 @@ import java.util.OptionalDouble;
  * @param skew how far the sheet is turned
  * @param spread how far apart the three skew measures were, in degrees
  * @param limits the profile's quality limits
+ * @param neatline the ruled border, when the capture was searched for one
  */
 public record QcContext(
         Optional<Surface> surface,
@@ -41,19 +43,10 @@ public record QcContext(
         Optional<Sampling> sampling,
         Optional<Angle> skew,
         OptionalDouble spread,
-        Optional<QcLimits> limits) {
+        Optional<QcLimits> limits,
+        Optional<Neatline> neatline) {
 
-    private static final QcContext EMPTY = new QcContext(
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            Optional.empty(),
-            OptionalDouble.empty(),
-            Optional.empty());
+    private static final QcContext EMPTY = new Draft().build();
 
     /** A context of the given parts; the list of rects to avoid is copied. */
     public QcContext {
@@ -67,6 +60,7 @@ public record QcContext(
         Objects.requireNonNull(skew, "skew");
         Objects.requireNonNull(spread, "spread");
         Objects.requireNonNull(limits, "limits");
+        Objects.requireNonNull(neatline, "neatline");
     }
 
     /** A context holding nothing, to build one up from with the {@code withX} methods. */
@@ -87,83 +81,138 @@ public record QcContext(
             case SKEW -> skew.isPresent();
             case SPREAD -> spread.isPresent();
             case LIMITS -> limits.isPresent();
+            case NEATLINE -> neatline.isPresent();
         };
     }
 
     /** This context with the one entry taken out, everything else the same. */
     public QcContext without(Need need) {
-        return switch (need) {
-            case SURFACE ->
-                new QcContext(Optional.empty(), sheet, avoid, bed, crop, target, sampling, skew, spread, limits);
-            case SHEET ->
-                new QcContext(surface, Optional.empty(), avoid, bed, crop, target, sampling, skew, spread, limits);
-            case AVOID ->
-                new QcContext(surface, sheet, Optional.empty(), bed, crop, target, sampling, skew, spread, limits);
-            case BED ->
-                new QcContext(surface, sheet, avoid, Optional.empty(), crop, target, sampling, skew, spread, limits);
-            case CROP ->
-                new QcContext(surface, sheet, avoid, bed, Optional.empty(), target, sampling, skew, spread, limits);
-            case TARGET ->
-                new QcContext(surface, sheet, avoid, bed, crop, Optional.empty(), sampling, skew, spread, limits);
-            case SAMPLING ->
-                new QcContext(surface, sheet, avoid, bed, crop, target, Optional.empty(), skew, spread, limits);
-            case SKEW ->
-                new QcContext(surface, sheet, avoid, bed, crop, target, sampling, Optional.empty(), spread, limits);
-            case SPREAD ->
-                new QcContext(surface, sheet, avoid, bed, crop, target, sampling, skew, OptionalDouble.empty(), limits);
-            case LIMITS ->
-                new QcContext(surface, sheet, avoid, bed, crop, target, sampling, skew, spread, Optional.empty());
-        };
+        Draft draft = new Draft(this);
+        switch (need) {
+            case SURFACE -> draft.surface = Optional.empty();
+            case SHEET -> draft.sheet = Optional.empty();
+            case AVOID -> draft.avoid = Optional.empty();
+            case BED -> draft.bed = Optional.empty();
+            case CROP -> draft.crop = Optional.empty();
+            case TARGET -> draft.target = Optional.empty();
+            case SAMPLING -> draft.sampling = Optional.empty();
+            case SKEW -> draft.skew = Optional.empty();
+            case SPREAD -> draft.spread = OptionalDouble.empty();
+            case LIMITS -> draft.limits = Optional.empty();
+            case NEATLINE -> draft.neatline = Optional.empty();
+        }
+        return draft.build();
     }
 
     /** This context holding the capture. */
     public QcContext withSurface(Surface surface) {
-        return new QcContext(Optional.of(surface), sheet, avoid, bed, crop, target, sampling, skew, spread, limits);
+        Draft draft = new Draft(this);
+        draft.surface = Optional.of(surface);
+        return draft.build();
     }
 
     /** This context holding the sheet's rect. */
     public QcContext withSheet(Rect sheet) {
-        return new QcContext(surface, Optional.of(sheet), avoid, bed, crop, target, sampling, skew, spread, limits);
+        Draft draft = new Draft(this);
+        draft.sheet = Optional.of(sheet);
+        return draft.build();
     }
 
     /** This context holding what to keep the bed patches off. */
     public QcContext withAvoid(List<Rect> avoid) {
-        return new QcContext(surface, sheet, Optional.of(avoid), bed, crop, target, sampling, skew, spread, limits);
+        Draft draft = new Draft(this);
+        draft.avoid = Optional.of(avoid);
+        return draft.build();
     }
 
     /** This context holding the region the bed is measured over. */
     public QcContext withBed(Rect bed) {
-        return new QcContext(surface, sheet, avoid, Optional.of(bed), crop, target, sampling, skew, spread, limits);
+        Draft draft = new Draft(this);
+        draft.bed = Optional.of(bed);
+        return draft.build();
     }
 
     /** This context holding the planned crop. */
     public QcContext withCrop(Rect crop) {
-        return new QcContext(surface, sheet, avoid, bed, Optional.of(crop), target, sampling, skew, spread, limits);
+        Draft draft = new Draft(this);
+        draft.crop = Optional.of(crop);
+        return draft.build();
     }
 
     /** This context holding the step wedge. */
     public QcContext withTarget(TargetFinding target) {
-        return new QcContext(surface, sheet, avoid, bed, crop, Optional.of(target), sampling, skew, spread, limits);
+        Draft draft = new Draft(this);
+        draft.target = Optional.of(target);
+        return draft.build();
     }
 
     /** This context holding the sampling frequency. */
     public QcContext withSampling(Sampling sampling) {
-        return new QcContext(surface, sheet, avoid, bed, crop, target, Optional.of(sampling), skew, spread, limits);
+        Draft draft = new Draft(this);
+        draft.sampling = Optional.of(sampling);
+        return draft.build();
     }
 
     /** This context holding the sheet's skew. */
     public QcContext withSkew(Angle skew) {
-        return new QcContext(surface, sheet, avoid, bed, crop, target, sampling, Optional.of(skew), spread, limits);
+        Draft draft = new Draft(this);
+        draft.skew = Optional.of(skew);
+        return draft.build();
     }
 
     /** This context holding the spread of the skew measures, in degrees. */
     public QcContext withSpread(double spread) {
-        return new QcContext(
-                surface, sheet, avoid, bed, crop, target, sampling, skew, OptionalDouble.of(spread), limits);
+        Draft draft = new Draft(this);
+        draft.spread = OptionalDouble.of(spread);
+        return draft.build();
     }
 
     /** This context holding the profile's quality limits. */
     public QcContext withLimits(QcLimits limits) {
-        return new QcContext(surface, sheet, avoid, bed, crop, target, sampling, skew, spread, Optional.of(limits));
+        Draft draft = new Draft(this);
+        draft.limits = Optional.of(limits);
+        return draft.build();
+    }
+
+    /** This context holding the ruled border. */
+    public QcContext withNeatline(Neatline neatline) {
+        Draft draft = new Draft(this);
+        draft.neatline = Optional.of(neatline);
+        return draft.build();
+    }
+
+    /** A context being changed one entry at a time, so no change has to spell out the rest. */
+    private static final class Draft {
+        private Optional<Surface> surface = Optional.empty();
+        private Optional<Rect> sheet = Optional.empty();
+        private Optional<List<Rect>> avoid = Optional.empty();
+        private Optional<Rect> bed = Optional.empty();
+        private Optional<Rect> crop = Optional.empty();
+        private Optional<TargetFinding> target = Optional.empty();
+        private Optional<Sampling> sampling = Optional.empty();
+        private Optional<Angle> skew = Optional.empty();
+        private OptionalDouble spread = OptionalDouble.empty();
+        private Optional<QcLimits> limits = Optional.empty();
+        private Optional<Neatline> neatline = Optional.empty();
+
+        Draft() {}
+
+        Draft(QcContext from) {
+            surface = from.surface;
+            sheet = from.sheet;
+            avoid = from.avoid;
+            bed = from.bed;
+            crop = from.crop;
+            target = from.target;
+            sampling = from.sampling;
+            skew = from.skew;
+            spread = from.spread;
+            limits = from.limits;
+            neatline = from.neatline;
+        }
+
+        QcContext build() {
+            return new QcContext(surface, sheet, avoid, bed, crop, target, sampling, skew, spread, limits, neatline);
+        }
     }
 }

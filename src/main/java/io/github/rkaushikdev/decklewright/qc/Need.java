@@ -27,7 +27,9 @@ public enum Need implements JsonValue {
     /** How far apart the three skew measures were, in degrees. */
     SPREAD("spread"),
     /** The profile's quality limits. */
-    LIMITS("limits");
+    LIMITS("limits"),
+    /** The ruled border, when the capture was searched for one. */
+    NEATLINE("neatline");
 
     private final String label;
 

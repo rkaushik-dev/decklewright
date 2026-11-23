@@ -26,6 +26,7 @@ public final class Reports {
             Map.entry("samplingFloor", "capture again at a higher frequency"),
             Map.entry("skew", "square the sheet on the bed"),
             Map.entry("skewAgreement", "look at the capture, the detector was not sure what it found"),
+            Map.entry("neatline", "flatten the sheet and keep the target clear of the collar"),
             Map.entry("illumination", "move a lamp towards the darker side"),
             Map.entry("grayBalance", "white balance the stand against the target"),
             Map.entry("toneResponse", "set the exposure so the wedge reads its aims"),

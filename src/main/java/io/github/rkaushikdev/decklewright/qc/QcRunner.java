@@ -4,10 +4,12 @@ import io.github.rkaushikdev.decklewright.detect.CaptureReading;
 import io.github.rkaushikdev.decklewright.detect.ScaleBarFinding;
 import io.github.rkaushikdev.decklewright.detect.TargetFinding;
 import io.github.rkaushikdev.decklewright.geom.Rect;
+import io.github.rkaushikdev.decklewright.profile.Anchor;
 import io.github.rkaushikdev.decklewright.profile.Profile;
 import io.github.rkaushikdev.decklewright.profile.Settings;
 import io.github.rkaushikdev.decklewright.qc.checks.GrayBalance;
 import io.github.rkaushikdev.decklewright.qc.checks.Illumination;
+import io.github.rkaushikdev.decklewright.qc.checks.NeatlineCheck;
 import io.github.rkaushikdev.decklewright.qc.checks.Noise;
 import io.github.rkaushikdev.decklewright.qc.checks.SamplingAndSkew;
 import io.github.rkaushikdev.decklewright.qc.checks.Sharpness;
@@ -19,6 +21,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * Running the quality checks against a capture.
@@ -37,8 +41,6 @@ import java.util.Set;
 public final class QcRunner {
     /** The ones a delivery cannot be graded without. */
     public static final List<String> REQUIRED = List.of("sampling", "skew", "clipping");
-
-    private static final String TONE = "toneResponse";
 
     private QcRunner() {}
 
@@ -66,7 +68,8 @@ public final class QcRunner {
      * Everything a check might ask for, gathered off the reading and the profile: the sheet's
      * bounding rect out to whole pixels, the sheet, target and scale bar as what to avoid, the whole
      * capture as the bed, the frequency given or else the one the reading measured, and the
-     * profile's limits. Only the crop, the target and the frequency can be absent.
+     * profile's limits, and the neatline when the capture was searched for one. Only the crop, the
+     * target, the frequency and the neatline can be absent.
      */
     public static QcContext contextFor(QcInput input) {
         CaptureReading reading = input.reading();
@@ -85,7 +88,8 @@ public final class QcRunner {
                 input.sampling().or(reading::sampling),
                 Optional.of(reading.sheet().skew()),
                 OptionalDouble.of(reading.sheet().spread()),
-                Optional.of(Settings.qcLimits(input.profile())));
+                Optional.of(Settings.qcLimits(input.profile())),
+                reading.neatline());
     }
 
     /**
@@ -137,22 +141,37 @@ public final class QcRunner {
 
     /**
      * The checks a profile asks for on top of the ones given: a profile that aims its wedge adds the
-     * tone response check straight after gray balance, or at the end when gray balance is not in the
-     * set. A set that already holds a check of that name is left as it is.
+     * tone response check straight after gray balance, and one that crops to a neatline adds the
+     * neatline check straight after skew agreement. Each goes at the end when the check it follows
+     * is not in the set, and a set that already holds a check of the name is left as it is.
      */
     public static List<Check> checksFor(Profile profile, List<Check> checks) {
-        boolean has = checks.stream().anyMatch(item -> item.name().equals(TONE));
-        if (profile.qc().toneAims().isEmpty() || has) {
-            return checks;
-        }
         List<Check> out = new ArrayList<>(checks);
-        int after = 0;
-        while (after < out.size() && !out.get(after).name().equals("grayBalance")) {
-            after += 1;
+        for (ProfileCheck extra : PROFILE_CHECKS) {
+            String name = extra.check().get().name();
+            boolean has = out.stream().anyMatch(item -> item.name().equals(name));
+            if (has || !extra.wanted().test(profile)) {
+                continue;
+            }
+            int after = 0;
+            while (after < out.size() && !out.get(after).name().equals(extra.after())) {
+                after += 1;
+            }
+            out.add(Math.min(after + 1, out.size()), extra.check().get());
         }
-        out.add(Math.min(after + 1, out.size()), ToneResponse.toneResponseCheck());
-        return List.copyOf(out);
+        return out.size() == checks.size() ? checks : List.copyOf(out);
     }
+
+    /** A check that runs only on a profile that asks for it, and the check it is listed after. */
+    private record ProfileCheck(Predicate<Profile> wanted, String after, Supplier<Check> check) {}
+
+    private static final List<ProfileCheck> PROFILE_CHECKS = List.of(
+            new ProfileCheck(
+                    profile -> !profile.qc().toneAims().isEmpty(), "grayBalance", ToneResponse::toneResponseCheck),
+            new ProfileCheck(
+                    profile -> profile.crop().anchor() == Anchor.NEATLINE,
+                    "skewAgreement",
+                    NeatlineCheck::neatlineCheck));
 
     /** The checks with the named ones taken out, the rest in the order given. */
     public static List<Check> withoutChecks(List<Check> checks, List<String> names) {

@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.rkaushikdev.decklewright.BadArgumentError;
 import io.github.rkaushikdev.decklewright.QcError;
+import io.github.rkaushikdev.decklewright.detect.Neatline;
 import io.github.rkaushikdev.decklewright.detect.TargetFinding;
 import io.github.rkaushikdev.decklewright.geom.Angle;
 import io.github.rkaushikdev.decklewright.geom.Rect;
@@ -23,6 +24,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -46,7 +48,8 @@ class CheckTest {
                 .withSampling(Sampling.of(400))
                 .withSkew(Angle.zero())
                 .withSpread(0)
-                .withLimits(Settings.qcLimits(new ProfileRegistry().get("house")));
+                .withLimits(Settings.qcLimits(new ProfileRegistry().get("house")))
+                .withNeatline(new Neatline(Rect.of(0, 0, 1, 1), Map.of(), List.of()));
     }
 
     @Nested
