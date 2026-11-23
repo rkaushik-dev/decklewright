@@ -31,8 +31,6 @@ public final class GrayBalance {
     public static final List<Rung> GRAY_BALANCE_LADDER =
             List.of(new Rung(4, 3), new Rung(3, 6), new Rung(2, 12), new Rung(1, 24));
 
-    private static final List<String> CHANNELS = List.of("red", "green", "blue");
-
     private GrayBalance() {}
 
     /**
@@ -95,7 +93,7 @@ public final class GrayBalance {
                 at = c;
             }
         }
-        return Optional.of(new Cast(CHANNELS.get(at), totals[at] / read));
+        return Optional.of(new Cast(surface.layout().channelNames().get(at), totals[at] / read));
     }
 
     private static Measurement measure(QcContext context) {

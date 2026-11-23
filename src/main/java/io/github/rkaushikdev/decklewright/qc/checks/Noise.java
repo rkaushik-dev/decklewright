@@ -42,8 +42,9 @@ public final class Noise {
     private Noise() {}
 
     /**
-     * Signal to noise on the first channel of the lightest flat patch of the target, held to the
-     * profile's floor. The measurement is in decibels, and 99 for a patch with no variation at all.
+     * Signal to noise on the lightest flat patch of the target, read on every colour channel and held
+     * to the profile's floor on the noisiest of them. The measurement is in decibels, and 99 for a
+     * patch with no variation at all; the note names the channel on a colour capture.
      */
     public static Check noiseCheck() {
         return Check.of("noise", List.of(Need.SURFACE, Need.TARGET, Need.LIMITS), Noise::measureNoise);
@@ -58,22 +59,47 @@ public final class Noise {
         return Check.of("clipping", List.of(Need.SURFACE, Need.LIMITS), Noise::measureClipping);
     }
 
+    /**
+     * The colour channel of a flat patch with the lowest signal to noise, which is the one a sensor
+     * is weakest in: on the stands here it is nearly always blue, because the lamps are warm and the
+     * blue photosites are amplified hardest to make up for it. An alpha channel is not read.
+     *
+     * @return the noisiest channel, the earlier one on a tie; empty when no channel gives a reading
+     */
+    public static Optional<ChannelNoise> noisiestChannel(Raster patch) {
+        List<String> names = patch.layout().channelNames();
+        ChannelNoise worst = null;
+        for (int channel = 0; channel < patch.layout().colourCount(); channel += 1) {
+            double snr = Stats.signalToNoise(patch, channel);
+            if (Double.isNaN(snr)) {
+                continue;
+            }
+            if (worst == null || snr < worst.snr()) {
+                worst = new ChannelNoise(names.get(channel), snr);
+            }
+        }
+        return Optional.ofNullable(worst);
+    }
+
     private static Measurement measureNoise(QcContext context) {
         Surface surface = context.surface().orElseThrow();
-        Optional<SurfaceView> view = Patches.lightestFlatPatch(
-                surface, context.target().orElseThrow().patches());
-        if (view.isEmpty()) {
+        Optional<ChannelNoise> read = Patches.lightestFlatPatch(
+                        surface, context.target().orElseThrow().patches())
+                .flatMap(Noise::noisiestChannel);
+        if (read.isEmpty()) {
             return new Measurement(Double.NaN, 0, "no patch of the target is usable for noise");
         }
 
-        double snr = Stats.signalToNoise(view.get(), 0);
+        double snr = read.get().snr();
         double allowed = context.limits().orElseThrow().minimumSnr();
         int stars = snr >= allowed ? starsFor(snr, NOISE_LADDER, true) : 0;
         boolean finite = Double.isFinite(snr);
+        String where =
+                surface.layout().isColour() && finite ? " in " + read.get().channel() : "";
         return new Measurement(
                 finite ? snr : UNMEASURABLE_SNR,
                 stars,
-                (finite ? NumberText.fixed(snr, 1) : "no measurable") + " dB against a floor of "
+                (finite ? NumberText.fixed(snr, 1) : "no measurable") + " dB" + where + " against a floor of "
                         + NumberText.of(allowed));
     }
 

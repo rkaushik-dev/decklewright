@@ -22,6 +22,7 @@ import io.github.rkaushikdev.decklewright.raster.Samples;
 import io.github.rkaushikdev.decklewright.raster.Surface;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -108,6 +109,68 @@ class NoiseTest {
             Finding out = runCheck(
                     noiseCheck(), QcContext.empty().withSurface(wedge(100)).withLimits(noiseLimits(30, 0.005)));
             assertThat(out.ran()).isFalse();
+        }
+    }
+
+    /** A colour wedge of four patches with noise on one channel only. */
+    static Surface colourWedge(int noisyChannel, int noise) {
+        Surface surface = Surface.create(120, 30, Layout.RGB);
+        double[] tones = {40, 120, 200, 250};
+        int seed = 5;
+        for (int y = 0; y < 30; y += 1) {
+            for (int x = 0; x < 120; x += 1) {
+                for (int c = 0; c < 3; c += 1) {
+                    double value = tones[x / 30];
+                    if (c == noisyChannel) {
+                        seed = (int) (long) (seed * 1103515245.0 + 12345.0) & 0x7fffffff;
+                        value += (seed % (noise * 2 + 1)) - noise;
+                    }
+                    surface.set(x, y, c, Math.max(0, Math.min(255, value)));
+                }
+            }
+        }
+        return surface;
+    }
+
+    @Nested
+    class EveryChannel {
+        @Test
+        void gradesTheNoisiestChannelOfAColourCapture() {
+            Finding blue = runCheck(noiseCheck(), context(colourWedge(2, 12)));
+            Finding red = runCheck(noiseCheck(), context(colourWedge(0, 12)));
+            assertThat(blue.stars()).isEqualTo(red.stars()).isLessThan(4);
+            assertThat(blue.measured()).isLessThan(40);
+            assertThat(blue.note()).containsPattern("^[0-9.]+ dB in blue against a floor of 30$");
+            assertThat(red.note()).contains(" dB in red ");
+        }
+
+        @Test
+        void namesTheChannelItRead() {
+            Surface surface = colourWedge(1, 6);
+            Optional<ChannelNoise> read = Noise.noisiestChannel(surface);
+            assertThat(read).isPresent();
+            assertThat(read.get().channel()).isEqualTo("green");
+            assertThat(read.get().snr()).isFinite();
+        }
+
+        @Test
+        void leavesTheChannelOutOfTheNoteForAGrayCapture() {
+            Finding out = runCheck(noiseCheck(), context(noisyWedge(4, 40, 120, 200, 250)));
+            assertThat(out.note()).doesNotContain(" in ").endsWith(" dB against a floor of 30");
+        }
+
+        @Test
+        void neverReadsAnAlphaChannel() {
+            Surface surface = Surface.create(10, 10, Layout.GRAYA);
+            for (int y = 0; y < 10; y += 1) {
+                for (int x = 0; x < 10; x += 1) {
+                    surface.set(x, y, 0, 150);
+                    surface.set(x, y, 1, (x + y) % 2 == 0 ? 0 : 255);
+                }
+            }
+            ChannelNoise read = Noise.noisiestChannel(surface).orElseThrow();
+            assertThat(read.channel()).isEqualTo("gray");
+            assertThat(read.snr()).isInfinite();
         }
     }
 
