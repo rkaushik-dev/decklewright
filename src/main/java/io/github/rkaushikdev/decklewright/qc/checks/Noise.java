@@ -1,7 +1,5 @@
 package io.github.rkaushikdev.decklewright.qc.checks;
 
-import static io.github.rkaushikdev.decklewright.qc.Check.starsFor;
-
 import io.github.rkaushikdev.decklewright.qc.Check;
 import io.github.rkaushikdev.decklewright.qc.Measurement;
 import io.github.rkaushikdev.decklewright.qc.Need;
@@ -92,7 +90,7 @@ public final class Noise {
 
         double snr = read.get().snr();
         double allowed = context.limits().orElseThrow().minimumSnr();
-        int stars = snr >= allowed ? starsFor(snr, NOISE_LADDER, true) : 0;
+        int stars = Check.starsWithin(snr, allowed, NOISE_LADDER, true);
         boolean finite = Double.isFinite(snr);
         String where =
                 surface.layout().isColour() && finite ? " in " + read.get().channel() : "";
@@ -124,7 +122,7 @@ public final class Noise {
         }
 
         double allowed = context.limits().orElseThrow().maximumClipping();
-        int stars = worst <= allowed ? starsFor(worst, CLIPPING_LADDER) : 0;
+        int stars = Check.starsWithin(worst, allowed, CLIPPING_LADDER, false);
         String note = worst == 0
                 ? "nothing is clipped"
                 : NumberText.fixed(worst * 100, 3) + " percent clipped in " + where + ", against "

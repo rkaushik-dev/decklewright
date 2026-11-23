@@ -1,7 +1,5 @@
 package io.github.rkaushikdev.decklewright.qc.checks;
 
-import static io.github.rkaushikdev.decklewright.qc.Check.starsFor;
-
 import io.github.rkaushikdev.decklewright.detect.TargetFinding;
 import io.github.rkaushikdev.decklewright.geom.Rect;
 import io.github.rkaushikdev.decklewright.qc.Check;
@@ -145,7 +143,7 @@ public final class Illumination {
         double spread = middle == 0 ? 0 : (high - low) / middle;
 
         double allowed = context.limits().orElseThrow().illuminationTolerance();
-        int stars = spread <= allowed ? starsFor(spread, ILLUMINATION_LADDER) : 0;
+        int stars = Check.starsWithin(spread, allowed, ILLUMINATION_LADDER, false);
         return new Measurement(
                 spread,
                 stars,

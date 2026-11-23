@@ -11,6 +11,7 @@ import io.github.rkaushikdev.decklewright.profile.Problem;
 import io.github.rkaushikdev.decklewright.profile.Profile;
 import io.github.rkaushikdev.decklewright.profile.ProfileRegistry;
 import io.github.rkaushikdev.decklewright.profile.Validation;
+import io.github.rkaushikdev.decklewright.qc.Ladders;
 import io.github.rkaushikdev.decklewright.util.Json;
 import io.github.rkaushikdev.decklewright.util.NumberText;
 import io.github.rkaushikdev.decklewright.util.Whitespace;
@@ -109,12 +110,10 @@ public final class ProfileCommand implements Command {
                 }
             }
 
-            List<Problem> problems = Validation.inspectProfile(profile);
-            if (!problems.isEmpty()) {
-                Validation.describeProblems(problems).forEach(sink::err);
-                return Validation.faultsOnly(problems).isEmpty() ? 0 : 1;
-            }
-            return 0;
+            List<Problem> problems = new ArrayList<>(Validation.inspectProfile(profile));
+            problems.addAll(Ladders.unreachableLevels(profile));
+            Validation.describeProblems(problems).forEach(sink::err);
+            return Validation.faultsOnly(problems).isEmpty() ? 0 : 1;
         } catch (DeckleError caught) {
             return Common.report(sink, caught);
         }

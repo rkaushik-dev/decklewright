@@ -143,7 +143,7 @@ public final class SamplingAndSkew {
     private static Measurement measureSkew(QcContext context) {
         double degrees = Math.abs(context.skew().orElseThrow().degrees());
         double allowed = context.limits().orElseThrow().skewTolerance();
-        int stars = degrees <= allowed ? starsFor(degrees, SKEW_LADDER) : 0;
+        int stars = Check.starsWithin(degrees, allowed, SKEW_LADDER, false);
         return new Measurement(
                 degrees,
                 stars,

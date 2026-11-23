@@ -1,7 +1,5 @@
 package io.github.rkaushikdev.decklewright.qc.checks;
 
-import static io.github.rkaushikdev.decklewright.qc.Check.starsFor;
-
 import io.github.rkaushikdev.decklewright.detect.Patch;
 import io.github.rkaushikdev.decklewright.qc.Check;
 import io.github.rkaushikdev.decklewright.qc.Measurement;
@@ -118,7 +116,7 @@ public final class GrayBalance {
             worst = Math.max(worst, error);
         }
         double allowed = context.limits().orElseThrow().grayBalanceTolerance();
-        int stars = worst <= allowed ? starsFor(worst, GRAY_BALANCE_LADDER) : 0;
+        int stars = Check.starsWithin(worst, allowed, GRAY_BALANCE_LADDER, false);
         return new Measurement(
                 worst,
                 stars,

@@ -89,10 +89,6 @@ public final class Validation {
             problems.add(fault("qc.toneAims", "does not step one way, so no wedge can read it"));
         }
 
-        if (qc.minimumStars() > 3 && qc.maximumClipping() > 0.001) {
-            problems.add(note("qc.maximumClipping", "is looser than four stars allows, so the level is unreachable"));
-        }
-
         return List.copyOf(problems);
     }
 

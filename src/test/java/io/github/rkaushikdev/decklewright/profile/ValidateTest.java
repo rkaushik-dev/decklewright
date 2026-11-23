@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.InstanceOfAssertFactories.LIST;
 
 import io.github.rkaushikdev.decklewright.ProfileError;
+import io.github.rkaushikdev.decklewright.qc.Ladders;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
@@ -132,9 +133,16 @@ class ValidateTest {
 
         @Test
         void notesAStarLevelTheClippingLimitCannotReach() {
-            List<Problem> problems =
-                    inspectProfile(profile(bag("qc", bag("minimumStars", 4.0, "maximumClipping", 0.01))));
+            // the ladders live with the checks, so the cross check is made there and not here
+            Profile written = profile(bag("qc", bag("minimumStars", 4.0, "maximumClipping", 0.01)));
+            assertThat(paths(inspectProfile(written))).doesNotContain("qc.maximumClipping");
+            List<Problem> problems = Ladders.unreachableLevels(written);
             assertThat(paths(problems)).contains("qc.maximumClipping");
+            assertThat(problems)
+                    .contains(
+                            note(
+                                    "qc.maximumClipping",
+                                    "is looser than four stars allows, which is 0.001, so a capture can pass it and miss the level"));
         }
     }
 

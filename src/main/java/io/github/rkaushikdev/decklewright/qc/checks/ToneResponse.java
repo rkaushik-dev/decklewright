@@ -1,7 +1,5 @@
 package io.github.rkaushikdev.decklewright.qc.checks;
 
-import static io.github.rkaushikdev.decklewright.qc.Check.starsFor;
-
 import io.github.rkaushikdev.decklewright.QcError;
 import io.github.rkaushikdev.decklewright.detect.Patch;
 import io.github.rkaushikdev.decklewright.profile.QcLimits;
@@ -133,7 +131,7 @@ public final class ToneResponse {
         }
         double worst = Math.abs(errors.get(at));
         double allowed = limits.toneTolerance();
-        int stars = worst <= allowed ? starsFor(worst, TONE_LADDER) : 0;
+        int stars = Check.starsWithin(worst, allowed, TONE_LADDER, false);
         String way = errors.get(at) > 0 ? "light" : "dark";
         return new Measurement(
                 worst,

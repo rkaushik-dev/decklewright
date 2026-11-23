@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.OptionalDouble;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -185,6 +186,30 @@ public final class Check {
             }
         }
         return 0;
+    }
+
+    /**
+     * Stars for a measurement held to a profile's own limit first: none at all past the limit,
+     * whatever the ladder says, otherwise the ladder's.
+     *
+     * @param allowed the profile's limit, met by reaching it when higher is better and by staying at
+     *     or under it otherwise
+     */
+    public static int starsWithin(double measured, double allowed, List<Rung> ladder, boolean higherIsBetter) {
+        boolean within = higherIsBetter ? measured >= allowed : measured <= allowed;
+        return within ? starsFor(measured, ladder, higherIsBetter) : 0;
+    }
+
+    /**
+     * The limit a ladder sets for a level: the rung awarding exactly those stars.
+     *
+     * @return the rung's limit; empty when the ladder has no rung at that level
+     */
+    public static OptionalDouble limitAt(List<Rung> ladder, int stars) {
+        return ladder.stream()
+                .filter(rung -> rung.stars() == stars)
+                .mapToDouble(Rung::limit)
+                .findFirst();
     }
 
     /**
