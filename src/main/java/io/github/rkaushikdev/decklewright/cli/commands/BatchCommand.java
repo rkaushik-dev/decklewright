@@ -18,6 +18,8 @@ import io.github.rkaushikdev.decklewright.store.Dispatch;
 import io.github.rkaushikdev.decklewright.store.IncomingCapture;
 import io.github.rkaushikdev.decklewright.store.Ledger;
 import io.github.rkaushikdev.decklewright.store.LedgerEntry;
+import io.github.rkaushikdev.decklewright.store.LedgerFilter;
+import io.github.rkaushikdev.decklewright.store.LedgerRead;
 import io.github.rkaushikdev.decklewright.store.Workspace;
 import java.nio.file.Path;
 import java.util.List;
@@ -51,7 +53,10 @@ public final class BatchCommand implements Command {
             Map.entry(
                     "version",
                     OptionSpec.string("what to record as the agent").withFallback(DeliveryOptions.UNKNOWN_VERSION)),
-            Map.entry("host", OptionSpec.string("which stand this is, for the provenance")));
+            Map.entry("host", OptionSpec.string("which stand this is, for the provenance")),
+            Map.entry("report", OptionSpec.flag("summarise the ledger by outcome and level and work nothing")),
+            Map.entry("since", OptionSpec.string("with --report, the first day or time to count, inclusive")),
+            Map.entry("until", OptionSpec.string("with --report, the day or time to stop counting before")));
 
     @Override
     public String usage() {
@@ -69,10 +74,11 @@ public final class BatchCommand implements Command {
     }
 
     /**
-     * Work everything waiting, print what happened to each and the shift's totals off the ledger.
+     * Work everything waiting, print what happened to each and the shift's totals off the ledger, or
+     * with {@code --report} only summarise the ledger over a period.
      *
-     * @return two when no workspace was named, one when it could not be worked or any accession
-     *     failed or was skipped, otherwise zero
+     * @return two when no workspace was named, one when it could not be worked, any accession
+     *     failed or was skipped, or a report found ledger lines it could not read, otherwise zero
      */
     @Override
     public int run(ParsedArgs args, Io sink) {
@@ -83,6 +89,9 @@ public final class BatchCommand implements Command {
         }
 
         try {
+            if (args.flag("report")) {
+                return report(Workspace.at(Path.of(root.get())), args, sink);
+            }
             Profile profile = Common.profileNamed(args.string("profile").orElseThrow());
             Workspace workspace = Workspace.at(Path.of(root.get()));
             Optional<Sampling> sampling = Common.samplingFrom(args.number("ppi"), profile);
@@ -137,5 +146,34 @@ public final class BatchCommand implements Command {
         } catch (DeckleError caught) {
             return Common.report(sink, caught);
         }
+    }
+
+    /**
+     * The ledger's entries over the period asked for, summarised for a progress report. Nothing in
+     * the workspace is touched.
+     *
+     * @return one when a ledger line could not be read, so the counts are short, otherwise zero
+     */
+    private static int report(Workspace workspace, ParsedArgs args, Io sink) {
+        LedgerRead read = Ledger.readLedger(workspace.paths().ledger());
+        LedgerFilter filter = LedgerFilter.everything();
+        Optional<String> since = args.string("since");
+        Optional<String> until = args.string("until");
+        if (since.isPresent()) {
+            filter = filter.withSince(since.get());
+        }
+        if (until.isPresent()) {
+            filter = filter.withUntil(until.get());
+        }
+        String period = since.map(from -> " from " + from).orElse("")
+                + until.map(to -> " until " + to).orElse("");
+        sink.out("ledger" + (period.isEmpty() ? ", every entry" : period));
+        Ledger.describeSummary(Ledger.summarise(Ledger.select(read.entries(), filter)))
+                .forEach(sink::out);
+        if (read.unreadable() > 0) {
+            sink.err(read.unreadable() + " ledger lines could not be read and are not counted");
+            return 1;
+        }
+        return 0;
     }
 }

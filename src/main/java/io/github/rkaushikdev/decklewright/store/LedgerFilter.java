@@ -47,6 +47,20 @@ public record LedgerFilter(
         return new LedgerFilter(outcome, profile, Optional.of(value), until);
     }
 
+    /** True when the entry passes every part of the filter that was given. */
+    public boolean picks(LedgerEntry entry) {
+        return given(outcome).map(entry.outcome()::equals).orElse(true)
+                && given(profile)
+                        .map(wanted -> entry.profile().equals(Optional.of(wanted)))
+                        .orElse(true)
+                && given(since).map(from -> entry.at().compareTo(from) >= 0).orElse(true)
+                && given(until).map(to -> entry.at().compareTo(to) < 0).orElse(true);
+    }
+
+    private static Optional<String> given(Optional<String> value) {
+        return value.filter(text -> !text.isEmpty());
+    }
+
     /** This filter, picking only entries before this time. */
     public LedgerFilter withUntil(String value) {
         return new LedgerFilter(outcome, profile, since, Optional.of(value));

@@ -10,6 +10,7 @@ import io.github.rkaushikdev.decklewright.util.Json;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -113,6 +114,42 @@ class BatchTest {
             Ran ran = invoke(BATCH, root.toString(), "-r", "400");
             assertThat(ran.outText()).containsPattern("1 accessions, \\d+ bytes");
             assertThat(ran.outText()).containsPattern("1 delivered");
+        }
+
+        @Test
+        void summarisesTheLedgerOverAPeriodWithoutWorkingAnything(@TempDir Path dir) throws IOException {
+            Path root = workspaceWith(dir, files("g4181.png", Console.capturePng()));
+            invoke(BATCH, root.toString(), "-r", "400");
+            Files.writeString(
+                    root.resolve("ledger.jsonl"),
+                    "{\"at\":\"2025-11-02T10:00:00.000Z\",\"accession\":\"old\",\"outcome\":\"rejected\","
+                            + "\"profile\":\"house\",\"stars\":1}\n",
+                    StandardOpenOption.APPEND);
+            workspaceWith(dir, files("g4182.png", Console.capturePng()));
+
+            Ran all = invoke(BATCH, root.toString(), "--report");
+            assertThat(all.code()).isZero();
+            assertThat(all.out().get(0)).isEqualTo("ledger, every entry");
+            assertThat(all.out())
+                    .contains("2 accessions, " + all.out().get(1).split(" ")[2] + " bytes", "    1 at 1 star");
+            assertThat(Console.namesIn(root.resolve("incoming"))).contains("g4182.png");
+
+            Ran december = invoke(BATCH, root.toString(), "--report", "--since", "2025-12-01");
+            assertThat(december.out().get(0)).isEqualTo("ledger from 2025-12-01");
+            assertThat(december.out().get(1)).startsWith("1 accessions, ");
+            assertThat(december.out()).contains("  1 delivered").doesNotContain("  1 rejected");
+
+            Ran november = invoke(BATCH, root.toString(), "--report", "--until", "2025-12-01");
+            assertThat(november.out()).contains("ledger until 2025-12-01", "  1 rejected", "    1 at 1 star");
+        }
+
+        @Test
+        void saysWhenAReportIsShortOfLinesItCouldNotRead(@TempDir Path dir) throws IOException {
+            Path root = workspaceWith(dir, files());
+            Files.writeString(root.resolve("ledger.jsonl"), "{torn\n");
+            Ran ran = invoke(BATCH, root.toString(), "--report");
+            assertThat(ran.code()).isEqualTo(1);
+            assertThat(ran.err()).containsExactly("1 ledger lines could not be read and are not counted");
         }
 
         @Test

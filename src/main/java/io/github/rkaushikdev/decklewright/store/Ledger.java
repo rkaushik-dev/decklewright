@@ -1,6 +1,7 @@
 package io.github.rkaushikdev.decklewright.store;
 
 import io.github.rkaushikdev.decklewright.StoreError;
+import io.github.rkaushikdev.decklewright.qc.Check;
 import io.github.rkaushikdev.decklewright.util.IsoTime;
 import io.github.rkaushikdev.decklewright.util.Json;
 import io.github.rkaushikdev.decklewright.util.JsonSyntaxException;
@@ -136,39 +137,35 @@ public final class Ledger {
 
     /** The entries the filter picks, in order. */
     public static List<LedgerEntry> select(List<LedgerEntry> entries, LedgerFilter filter) {
-        Optional<String> outcome = given(filter.outcome());
-        Optional<String> profile = given(filter.profile());
-        Optional<String> since = given(filter.since());
-        Optional<String> until = given(filter.until());
-        return entries.stream()
-                .filter(entry -> outcome.isEmpty() || entry.outcome().equals(outcome.get()))
-                .filter(entry -> profile.isEmpty() || entry.profile().equals(profile))
-                .filter(entry -> since.isEmpty() || entry.at().compareTo(since.get()) >= 0)
-                .filter(entry -> until.isEmpty() || entry.at().compareTo(until.get()) < 0)
-                .toList();
+        return entries.stream().filter(filter::picks).toList();
     }
 
     /** What a set of entries produced, counted. */
     public static Summary summarise(List<LedgerEntry> entries) {
         Map<String, Integer> byOutcome = new LinkedHashMap<>();
+        Map<String, Integer> byProfile = new LinkedHashMap<>();
+        Map<Integer, Integer> byStars = new LinkedHashMap<>();
         long bytes = 0;
-        int graded = 0;
         long stars = 0;
         for (LedgerEntry entry : entries) {
             byOutcome.merge(entry.outcome(), 1, Integer::sum);
+            entry.profile().ifPresent(name -> byProfile.merge(name, 1, Integer::sum));
             bytes += entry.bytes().orElse(0);
             if (entry.stars().isPresent()) {
-                graded += 1;
                 stars += entry.stars().getAsInt();
+                byStars.merge(entry.stars().getAsInt(), 1, Integer::sum);
             }
         }
+        int graded = byStars.values().stream().mapToInt(Integer::intValue).sum();
         OptionalDouble average = graded == 0 ? OptionalDouble.empty() : OptionalDouble.of((double) stars / graded);
-        return new Summary(entries.size(), byOutcome, bytes, graded, average);
+        return new Summary(entries.size(), byOutcome, bytes, graded, average, byStars, byProfile);
     }
 
     /**
      * A summary for a person: the totals, then each outcome there was any of in the fixed order of
-     * {@link #OUTCOMES}, then the average grading to two places when anything was graded.
+     * {@link #OUTCOMES}, then the average grading to two places when anything was graded, how many
+     * sit at each level from the top down, and how many ran under each profile when more than one
+     * did. The levels are the table a funder's progress report asks for.
      */
     public static List<String> describeSummary(Summary summary) {
         List<String> lines = new ArrayList<>();
@@ -182,6 +179,15 @@ public final class Ledger {
         summary.averageStars()
                 .ifPresent(average ->
                         lines.add("  " + NumberText.fixed(average, 2) + " stars over " + summary.graded() + " graded"));
+        for (int stars = Check.MAX_STARS; stars >= 0; stars -= 1) {
+            int count = summary.byStars().getOrDefault(stars, 0);
+            if (count != 0) {
+                lines.add("    " + count + " at " + stars + (stars == 1 ? " star" : " stars"));
+            }
+        }
+        if (summary.byProfile().size() > 1) {
+            summary.byProfile().forEach((name, count) -> lines.add("  " + count + " under " + name));
+        }
         return lines;
     }
 

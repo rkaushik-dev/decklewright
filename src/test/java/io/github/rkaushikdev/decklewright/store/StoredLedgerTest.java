@@ -103,7 +103,9 @@ class StoredLedgerTest {
                         "  1 rejected",
                         "  1 failed",
                         "  1 skipped",
-                        "  2.00 stars over 2 graded");
+                        "  2.00 stars over 2 graded",
+                        "    1 at 3 stars",
+                        "    1 at 1 star");
     }
 
     @Test

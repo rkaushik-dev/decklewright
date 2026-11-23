@@ -252,13 +252,37 @@ class LedgerTest {
         }
 
         @Test
+        void talliesTheGradedOnesByLevelAndEveryOneByProfile() {
+            Summary out = summarise(ENTRIES);
+            assertThat(out.byStars()).isEqualTo(Map.of(4, 1, 1, 1));
+            assertThat(out.byProfile()).containsExactly(Map.entry("house", 2), Map.entry("quadrangles", 1));
+        }
+
+        @Test
+        void describesTheLevelsFromTheTopDownAndTheProfilesWhenThereAreSeveral() {
+            assertThat(describeSummary(summarise(ENTRIES)))
+                    .containsExactly(
+                            "3 accessions, 180 bytes",
+                            "  1 delivered",
+                            "  1 rejected",
+                            "  1 failed",
+                            "  2.50 stars over 2 graded",
+                            "    1 at 4 stars",
+                            "    1 at 1 star",
+                            "  2 under house",
+                            "  1 under quadrangles");
+            assertThat(describeSummary(summarise(ENTRIES.subList(0, 2)))).noneMatch(line -> line.contains("under"));
+        }
+
+        @Test
         void hasNoAverageWhenNothingWasGraded() {
             assertThat(summarise(List.of(ENTRIES.get(2))).averageStars()).isEmpty();
         }
 
         @Test
         void countsAnEmptyLedgerAsEmpty() {
-            assertThat(summarise(List.of())).isEqualTo(new Summary(0, Map.of(), 0, 0, OptionalDouble.empty()));
+            assertThat(summarise(List.of()))
+                    .isEqualTo(new Summary(0, Map.of(), 0, 0, OptionalDouble.empty(), Map.of(), Map.of()));
         }
     }
 
