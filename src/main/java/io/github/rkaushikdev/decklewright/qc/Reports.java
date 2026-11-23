@@ -17,28 +17,6 @@ import java.util.Optional;
  * <p>Both come out of the same findings, so they cannot disagree.
  */
 public final class Reports {
-    /**
-     * What to do about it. Every entry names a check and says what an operator would actually
-     * change, which is the only part of a report anybody acts on.
-     */
-    private static final Map<String, String> REMEDIES = Map.ofEntries(
-            Map.entry("sampling", "set the scanner to the frequency the profile asks for"),
-            Map.entry("samplingFloor", "capture again at a higher frequency"),
-            Map.entry("skew", "square the sheet on the bed"),
-            Map.entry("skewAgreement", "look at the capture, the detector was not sure what it found"),
-            Map.entry("neatline", "flatten the sheet and keep the target clear of the collar"),
-            Map.entry("illumination", "move a lamp towards the darker side"),
-            Map.entry("grayBalance", "white balance the stand against the target"),
-            Map.entry("toneResponse", "set the exposure so the wedge reads its aims"),
-            Map.entry("wedgeSteps", "open the exposure up until every step of the wedge reads apart"),
-            Map.entry("noise", "lower the gain or lengthen the exposure"),
-            Map.entry("clipping", "lower the exposure and capture again"),
-            Map.entry("sharpness", "refocus the stand"),
-            Map.entry("sharpening", "turn the capture sharpening down"),
-            Map.entry("channelRegistration", "stop the lens down or check the back is seated"));
-
-    private static final String NO_REMEDY = "look at the capture";
-
     private Reports() {}
 
     /**
@@ -132,7 +110,7 @@ public final class Reports {
      */
     public static List<String> remedies(List<Finding> findings, int wanted) {
         return Levels.shortfall(findings, wanted).stream()
-                .map(shortfall -> shortfall.name() + ": " + REMEDIES.getOrDefault(shortfall.name(), NO_REMEDY))
+                .map(shortfall -> shortfall.name() + ": " + Advice.remedyFor(shortfall.name()))
                 .toList();
     }
 
