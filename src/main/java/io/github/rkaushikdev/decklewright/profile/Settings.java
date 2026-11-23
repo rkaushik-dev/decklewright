@@ -106,7 +106,9 @@ public final class Settings {
                 qc.grayBalanceTolerance(),
                 qc.minimumSnr(),
                 qc.maximumClipping(),
-                qc.minimumStars());
+                qc.minimumStars(),
+                qc.toneAims(),
+                qc.toneTolerance());
     }
 
     /**

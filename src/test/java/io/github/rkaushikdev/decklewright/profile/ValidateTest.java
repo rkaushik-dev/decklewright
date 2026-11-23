@@ -52,6 +52,23 @@ class ValidateTest {
         }
 
         @Test
+        void refusesToneAimsThatDoNotStepOneWay() {
+            List<Problem> problems =
+                    inspectProfile(profile(bag("qc", bag("toneAims", list(240.0, 180.0, 200.0, 40.0)))));
+            assertThat(faultsOnly(problems)).hasSize(1);
+            assertThat(problems.get(0).path()).isEqualTo("qc.toneAims");
+            assertThat(problems.get(0).message()).isEqualTo("does not step one way, so no wedge can read it");
+        }
+
+        @Test
+        void acceptsToneAimsEitherWayRoundAndLevelSteps() {
+            assertThat(inspectProfile(profile(bag("qc", bag("toneAims", list(40.0, 40.0, 120.0, 240.0))))))
+                    .isEqualTo(List.of());
+            assertThat(inspectProfile(profile(bag("qc", bag("toneAims", list(240.0, 120.0, 40.0))))))
+                    .isEqualTo(List.of());
+        }
+
+        @Test
         void acceptsThePairWhenBothAreSet() {
             List<Problem> problems = inspectProfile(
                     profile(bag("crop", bag("anchor", "neatline"), "capture", bag("expectNeatline", true))));

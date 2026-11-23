@@ -153,6 +153,45 @@ class FieldsTest {
     }
 
     @Nested
+    class ToneAims {
+        @Test
+        void areLeftEmptyAndOutOfTheJsonWhenNotWritten() {
+            Profile profile = parseProfile(bag("name", "atlas"));
+            assertThat(profile.qc().toneAims()).isEmpty();
+            assertThat(profile.qc().toneTolerance()).isEqualTo(6);
+            assertThat(profile.qc().toJson()).doesNotContainKey("toneAims").containsEntry("toneTolerance", 6.0);
+        }
+
+        @Test
+        void readAsNumbersAndWriteBackInOrder() {
+            Profile profile = parseProfile(
+                    bag("name", "atlas", "qc", bag("toneAims", List.of(242, 200, 120, 40), "toneTolerance", 4)));
+            assertThat(profile.qc().toneAims()).containsExactly(242.0, 200.0, 120.0, 40.0);
+            assertThat(profile.qc().toJson())
+                    .containsEntry("toneAims", List.of(242.0, 200.0, 120.0, 40.0))
+                    .containsEntry("toneTolerance", 4.0);
+            assertThat(settingAt(profile, "qc.toneAims.1")).contains(200.0);
+        }
+
+        @Test
+        void refuseAnAimThatIsNotASampleValue() {
+            assertThatThrownBy(() -> parseProfile(bag("name", "atlas", "qc", bag("toneAims", List.of(40, -1)))))
+                    .isInstanceOf(ProfileError.class)
+                    .hasMessageStartingWith("qc.toneAims[1]: ");
+        }
+
+        @Test
+        void carryOnThroughAnotherGrade() {
+            Profile.Qc qc = parseProfile(bag("name", "atlas", "qc", bag("toneAims", List.of(40, 240))))
+                    .qc();
+            Profile.Qc four = qc.withMinimumStars(4);
+            assertThat(four.minimumStars()).isEqualTo(4);
+            assertThat(four.toneAims()).isEqualTo(qc.toneAims());
+            assertThat(four.withMinimumStars(qc.minimumStars())).isEqualTo(qc);
+        }
+    }
+
+    @Nested
     class SettingPaths {
         @Test
         void walksTheWholeTree() {

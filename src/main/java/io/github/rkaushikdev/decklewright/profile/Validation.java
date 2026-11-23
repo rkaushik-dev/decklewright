@@ -75,6 +75,10 @@ public final class Validation {
             problems.add(note("derivatives", "is empty, so a run will plan a crop and write nothing"));
         }
 
+        if (!steppingOneWay(qc.toneAims())) {
+            problems.add(fault("qc.toneAims", "does not step one way, so no wedge can read it"));
+        }
+
         if (qc.minimumStars() > 3 && qc.maximumClipping() > 0.001) {
             problems.add(note("qc.maximumClipping", "is looser than four stars allows, so the level is unreachable"));
         }
@@ -118,6 +122,17 @@ public final class Validation {
             problems.add(note("derivatives", "has more than one derivative at full size"));
         }
         return List.copyOf(problems);
+    }
+
+    /** True when every aim is at least the one before it, or every aim at most the one before it. */
+    private static boolean steppingOneWay(List<Double> aims) {
+        boolean up = true;
+        boolean down = true;
+        for (int i = 1; i < aims.size(); i += 1) {
+            up &= aims.get(i) >= aims.get(i - 1);
+            down &= aims.get(i) <= aims.get(i - 1);
+        }
+        return up || down;
     }
 
     /** Only the problems that stop a run, in the order given. */

@@ -7,6 +7,7 @@ import io.github.rkaushikdev.decklewright.measure.Length;
 import io.github.rkaushikdev.decklewright.measure.Tolerance;
 import io.github.rkaushikdev.decklewright.raster.Layout;
 import io.github.rkaushikdev.decklewright.util.JsonValue;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +64,11 @@ public record Profile(
         derivatives = List.copyOf(derivatives);
         Objects.requireNonNull(qc, "qc");
         Objects.requireNonNull(naming, "naming");
+    }
+
+    /** This profile held to another quality bar, everything else the same. */
+    public Profile withQc(Qc qc) {
+        return new Profile(name, title, version, parent, capture, crop, derivatives, qc, naming);
     }
 
     /** This profile with its files named another way, everything else the same. */
@@ -245,6 +251,9 @@ public record Profile(
      * @param minimumSnr the lowest signal to noise ratio a capture may have
      * @param maximumClipping the largest share of samples that may sit at either end of the range
      * @param minimumStars the grade, one to four stars, a capture has to reach to be delivered
+     * @param toneAims what each patch of the step wedge should read, in sample values, lightest or
+     *     darkest first; copied, and empty when the profile does not aim its wedge
+     * @param toneTolerance how far off its aim any one patch may read, in sample values
      */
     public record Qc(
             double samplingPpi,
@@ -254,15 +263,33 @@ public record Profile(
             double grayBalanceTolerance,
             double minimumSnr,
             double maximumClipping,
-            int minimumStars)
+            int minimumStars,
+            List<Double> toneAims,
+            double toneTolerance)
             implements JsonValue {
 
-        /** Quality settings of the given values. */
+        /** Quality settings of the given values; the tone aims are copied. */
         public Qc {
             Objects.requireNonNull(samplingTolerance, "samplingTolerance");
+            toneAims = List.copyOf(toneAims);
         }
 
-        /** The settings in field order, in a new map the caller may keep. */
+        /** These settings asking for another grade, everything else the same. */
+        public Qc withMinimumStars(int stars) {
+            return new Qc(
+                    samplingPpi,
+                    samplingTolerance,
+                    skewTolerance,
+                    illuminationTolerance,
+                    grayBalanceTolerance,
+                    minimumSnr,
+                    maximumClipping,
+                    stars,
+                    toneAims,
+                    toneTolerance);
+        }
+
+        /** The settings in field order, the tone aims left out when there are none, in a new map. */
         @Override
         public Map<String, Object> toJson() {
             Map<String, Object> json = new LinkedHashMap<>();
@@ -274,6 +301,10 @@ public record Profile(
             json.put("minimumSnr", minimumSnr);
             json.put("maximumClipping", maximumClipping);
             json.put("minimumStars", (double) minimumStars);
+            if (!toneAims.isEmpty()) {
+                json.put("toneAims", new ArrayList<Object>(toneAims));
+            }
+            json.put("toneTolerance", toneTolerance);
             return json;
         }
     }

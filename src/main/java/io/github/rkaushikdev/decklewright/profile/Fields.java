@@ -209,6 +209,8 @@ public final class Fields {
         fields.put(
                 "minimumStars",
                 number(bounded().withMin(1).withMax(4).withInteger(true).withFallback(3.0)));
+        fields.put("toneAims", list(number(bounded().withMin(0).withMax(65535))));
+        fields.put("toneTolerance", number(bounded().withMin(0).withMax(255).withFallback(6.0)));
         return fields;
     }
 
@@ -302,7 +304,9 @@ public final class Fields {
                 numberAt(read, "grayBalanceTolerance"),
                 numberAt(read, "minimumSnr"),
                 numberAt(read, "maximumClipping"),
-                wholeAt(read, "minimumStars"));
+                wholeAt(read, "minimumStars"),
+                numbersAt(read, "toneAims"),
+                numberAt(read, "toneTolerance"));
     }
 
     private static Profile.Naming toNaming(Map<?, ?> read) {
@@ -311,6 +315,13 @@ public final class Fields {
 
     private static double numberAt(Map<?, ?> read, String key) {
         return (Double) read.get(key);
+    }
+
+    /** A list of numbers, or none when the setting was not written. */
+    private static List<Double> numbersAt(Map<?, ?> read, String key) {
+        return read.get(key) instanceof List<?> written
+                ? written.stream().map(Double.class::cast).toList()
+                : List.of();
     }
 
     /** A number the schema bounds to a small whole range, so it is exact as an int. */

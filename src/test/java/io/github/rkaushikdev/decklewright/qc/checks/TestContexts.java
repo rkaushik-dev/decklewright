@@ -16,56 +16,25 @@ import java.util.List;
  */
 final class TestContexts {
     /** The house figures, at the 600 ppi the sampling tests are written against. */
-    static final QcLimits LIMITS = new QcLimits(Sampling.of(600), Tolerance.percent(1), 0.3, 0.1, 6, 30, 0.005, 3);
+    static final QcLimits LIMITS =
+            new QcLimits(Sampling.of(600), Tolerance.percent(1), 0.3, 0.1, 6, 30, 0.005, 3, List.of(), 6);
 
     private TestContexts() {}
 
     static QcLimits skewLimit(double skewTolerance) {
-        return new QcLimits(
-                LIMITS.sampling(),
-                LIMITS.samplingTolerance(),
-                skewTolerance,
-                LIMITS.illuminationTolerance(),
-                LIMITS.grayBalanceTolerance(),
-                LIMITS.minimumSnr(),
-                LIMITS.maximumClipping(),
-                LIMITS.minimumStars());
+        return LIMITS.withSkewTolerance(skewTolerance);
     }
 
     static QcLimits illuminationLimit(double illuminationTolerance) {
-        return new QcLimits(
-                LIMITS.sampling(),
-                LIMITS.samplingTolerance(),
-                LIMITS.skewTolerance(),
-                illuminationTolerance,
-                LIMITS.grayBalanceTolerance(),
-                LIMITS.minimumSnr(),
-                LIMITS.maximumClipping(),
-                LIMITS.minimumStars());
+        return LIMITS.withIlluminationTolerance(illuminationTolerance);
     }
 
     static QcLimits grayBalanceLimit(double grayBalanceTolerance) {
-        return new QcLimits(
-                LIMITS.sampling(),
-                LIMITS.samplingTolerance(),
-                LIMITS.skewTolerance(),
-                LIMITS.illuminationTolerance(),
-                grayBalanceTolerance,
-                LIMITS.minimumSnr(),
-                LIMITS.maximumClipping(),
-                LIMITS.minimumStars());
+        return LIMITS.withGrayBalanceTolerance(grayBalanceTolerance);
     }
 
     static QcLimits noiseLimits(double minimumSnr, double maximumClipping) {
-        return new QcLimits(
-                LIMITS.sampling(),
-                LIMITS.samplingTolerance(),
-                LIMITS.skewTolerance(),
-                LIMITS.illuminationTolerance(),
-                LIMITS.grayBalanceTolerance(),
-                minimumSnr,
-                maximumClipping,
-                LIMITS.minimumStars());
+        return LIMITS.withNoise(minimumSnr, maximumClipping);
     }
 
     /** A step wedge of the given patches, each one only a rect, which is all the checks read of it. */

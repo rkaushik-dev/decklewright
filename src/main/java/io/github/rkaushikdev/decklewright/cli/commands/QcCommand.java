@@ -114,25 +114,6 @@ public final class QcCommand implements Command {
     private static Profile atLevel(Profile base, double stars) {
         Guards.requireInteger(stars, "stars");
         Guards.requireInRange(stars, 0, TOP_STARS, "stars");
-        Profile.Qc qc = base.qc();
-        Profile.Qc wanted = new Profile.Qc(
-                qc.samplingPpi(),
-                qc.samplingTolerance(),
-                qc.skewTolerance(),
-                qc.illuminationTolerance(),
-                qc.grayBalanceTolerance(),
-                qc.minimumSnr(),
-                qc.maximumClipping(),
-                (int) stars);
-        return new Profile(
-                base.name(),
-                base.title(),
-                base.version(),
-                base.parent(),
-                base.capture(),
-                base.crop(),
-                base.derivatives(),
-                wanted,
-                base.naming());
+        return base.withQc(base.qc().withMinimumStars((int) stars));
     }
 }

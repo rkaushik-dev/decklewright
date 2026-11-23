@@ -28,6 +28,7 @@ public final class Reports {
             "skewAgreement", "look at the capture, the detector was not sure what it found",
             "illumination", "move a lamp towards the darker side",
             "grayBalance", "white balance the stand against the target",
+            "toneResponse", "set the exposure so the wedge reads its aims",
             "noise", "lower the gain or lengthen the exposure",
             "clipping", "lower the exposure and capture again",
             "sharpness", "refocus the stand");
